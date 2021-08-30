@@ -1,5 +1,5 @@
-use crate::hardware::i2c::ServoMotor;
-use crate::hardware::i2c::PCA9685;
+use crate::hardware::i2c::servo::ServoMotor;
+use crate::hardware::i2c::pca9685::PCA9685;
 use pwm_pca9685::Channel;
 
 pub fn pos_a() {
