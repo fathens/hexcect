@@ -2,7 +2,7 @@ mod hardware;
 mod walk;
 
 pub fn check() {
-    walk::pos_a();
+    walk::pos_a()
 }
 
 #[cfg(test)]
