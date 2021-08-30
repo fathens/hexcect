@@ -1,10 +1,15 @@
 use i2cdev::linux::LinuxI2CError;
 use linux_embedded_hal::I2cdev;
 use pwm_pca9685::{Address, Channel, Error, Pca9685};
+use std::collections::HashMap;
 
 const OSC: f64 = 25000000.0;
 const PULSE_BASE: f64 = 4096.0;
 pub type PwmError = Error<LinuxI2CError>;
+
+pub trait HasPrescale {
+    fn prescale(&self) -> u8;
+}
 
 pub trait ChannelIndex {
     fn index(&self) -> Option<u8>;
@@ -80,18 +85,32 @@ impl PCA9685 {
 
     pub fn set_duty_cycle<T>(&mut self, rates: &[(&T, f64)]) -> Result<(), PwmError>
     where
-        T: ChannelIndex
+        T: ChannelIndex + HasPrescale,
     {
-        let mut values = [0u16; 16];
+        let mut by_prescale: HashMap<u8, [u16; 16]> = HashMap::new();
         for (t, rate) in rates {
+            let ps = t.prescale();
+            let values = match by_prescale.get_mut(&ps) {
+                Some(a) => a,
+                None => {
+                    by_prescale.insert(ps, [0; 16]);
+                    by_prescale.get_mut(&ps).expect("Must be here")
+                }
+            };
             let v = (PULSE_BASE * rate) as u16;
             match t.index() {
                 Some(i) => values[i as usize] = v,
-                None => for i in 0..values.len() {
-                    values[i] = v
+                None => {
+                    for i in 0..values.len() {
+                        values[i] = v
+                    }
                 }
             }
         }
-        self.inner.set_all_on_off(&[0; 16], &values)
+        by_prescale.iter().fold(Ok(()), |prev, (ps, values)| {
+            prev?;
+            self.set_prescale(*ps)?;
+            self.inner.set_all_on_off(&[0; 16], &values)
+        })
     }
 }

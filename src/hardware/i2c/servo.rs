@@ -1,5 +1,11 @@
-use super::pca9685::{ChannelIndex, PwmError, PCA9685};
+use super::pca9685::{ChannelIndex, HasPrescale, PwmError, PCA9685};
 use pwm_pca9685::Channel;
+
+impl HasPrescale for ServoMotor {
+    fn prescale(&self) -> u8 {
+        self.prescale
+    }
+}
 
 impl ChannelIndex for ServoMotor {
     fn index(&self) -> Option<u8> {
