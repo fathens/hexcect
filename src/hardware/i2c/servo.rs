@@ -1,4 +1,4 @@
-use super::pca9685::{ChannelIndex, HasPrescale, PwmError, PCA9685};
+use super::pca9685::{HasChannel, HasPrescale, PwmError, PCA9685};
 use pwm_pca9685::Channel;
 
 pub struct ServoMotor {
@@ -40,9 +40,9 @@ impl HasPrescale for ServoMotor {
     }
 }
 
-impl ChannelIndex for ServoMotor {
-    fn index(&self) -> Option<u8> {
-        self.channel.index()
+impl HasChannel for ServoMotor {
+    fn channel(&self) -> Channel {
+        self.channel
     }
 }
 
@@ -77,8 +77,8 @@ impl HasPrescale for SG90_180 {
     }
 }
 
-impl ChannelIndex for SG90_180 {
-    fn index(&self) -> Option<u8> {
-        self.servo.index()
+impl HasChannel for SG90_180 {
+    fn channel(&self) -> Channel {
+        self.servo.channel()
     }
 }

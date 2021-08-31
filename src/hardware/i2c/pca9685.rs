@@ -11,32 +11,8 @@ pub trait HasPrescale {
     fn prescale(&self) -> u8;
 }
 
-pub trait ChannelIndex {
-    fn index(&self) -> Option<u8>;
-}
-
-impl ChannelIndex for Channel {
-    fn index(&self) -> Option<u8> {
-        match self {
-            Channel::All => None,
-            Channel::C0 => Some(0),
-            Channel::C1 => Some(1),
-            Channel::C2 => Some(2),
-            Channel::C3 => Some(3),
-            Channel::C4 => Some(4),
-            Channel::C5 => Some(5),
-            Channel::C6 => Some(6),
-            Channel::C7 => Some(7),
-            Channel::C8 => Some(8),
-            Channel::C9 => Some(9),
-            Channel::C10 => Some(10),
-            Channel::C11 => Some(11),
-            Channel::C12 => Some(12),
-            Channel::C13 => Some(13),
-            Channel::C14 => Some(14),
-            Channel::C15 => Some(15),
-        }
-    }
+pub trait HasChannel {
+    fn channel(&self) -> Channel;
 }
 
 pub struct PCA9685 {
@@ -52,6 +28,10 @@ impl PCA9685 {
         };
         let frequency = OSC / (PULSE_BASE * (prescale as f64 + 1.0));
         (frequency, prescale)
+    }
+
+    pub fn calc_pulse(rate: f64) -> u16 {
+        (PULSE_BASE * rate) as u16
     }
 
     pub fn new(bus: u8, addr: u8) -> Result<PCA9685, PwmError> {
@@ -79,38 +59,33 @@ impl PCA9685 {
     }
 
     pub fn set_one_duty_cycle(&mut self, channel: Channel, rate: f64) -> Result<(), PwmError> {
-        let steps = (PULSE_BASE * rate) as u16;
-        self.inner.set_channel_on_off(channel, 0, steps)
+        let v = PCA9685::calc_pulse(rate);
+        self.inner.set_channel_on_off(channel, 0, v)
     }
 
     pub fn set_duty_cycle<T>(&mut self, rates: &[(&T, f64)]) -> Result<(), PwmError>
     where
-        T: ChannelIndex + HasPrescale,
+        T: HasChannel + HasPrescale,
     {
-        let mut by_prescale: HashMap<u8, [u16; 16]> = HashMap::new();
+        let mut by_prescale: HashMap<u8, Vec<(Channel, &f64)>> = HashMap::new();
         for (t, rate) in rates {
             let ps = t.prescale();
             let values = match by_prescale.get_mut(&ps) {
                 Some(a) => a,
                 None => {
-                    by_prescale.insert(ps, [0; 16]);
+                    by_prescale.insert(ps, Vec::new());
                     by_prescale.get_mut(&ps).expect("Must be here")
                 }
             };
-            let v = (PULSE_BASE * rate) as u16;
-            match t.index() {
-                Some(i) => values[i as usize] = v,
-                None => {
-                    for i in 0..values.len() {
-                        values[i] = v
-                    }
-                }
-            }
+            values.push((t.channel(), rate));
         }
         by_prescale.iter().fold(Ok(()), |prev, (ps, values)| {
             prev?;
-            self.set_prescale(*ps)?;
-            self.inner.set_all_on_off(&[0; 16], &values)
+            let preset = self.set_prescale(*ps);
+            values.iter().fold(preset, |prev, (channel, rate)| {
+                prev?;
+                self.set_one_duty_cycle(*channel, **rate)
+            })
         })
     }
 }
