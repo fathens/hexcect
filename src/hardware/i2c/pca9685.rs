@@ -67,32 +67,51 @@ impl PCA9685 {
     where
         T: HasChannel + HasPrescale,
     {
-        let mut by_prescale: HashMap<u8, Vec<(Channel, &f64)>> = HashMap::new();
-        for (t, rate) in rates {
-            let ps = t.prescale();
-            let values = match by_prescale.get_mut(&ps) {
-                Some(a) => a,
-                None => {
-                    by_prescale.insert(ps, Vec::new());
-                    by_prescale.get_mut(&ps).expect("Must be here")
-                }
-            };
-            values.push((t.channel(), rate));
-        }
+        let by_prescale = group_by(rates, |e| e.prescale());
         by_prescale.iter().fold(Ok(()), |prev, (ps, values)| {
             prev?;
             let preset = self.set_prescale(*ps);
-            values.iter().fold(preset, |prev, (channel, rate)| {
+            values.iter().fold(preset, |prev, (t, rate)| {
                 prev?;
-                self.set_one_duty_cycle(*channel, **rate)
+                self.set_one_duty_cycle(t.channel(), *rate)
             })
         })
     }
 }
 
+fn group_by<'a, A, B, C, F>(list: &[(&'a A, B)], by: F) -> HashMap<C, Vec<(&'a A, B)>>
+where
+    B: Copy,
+    C: Copy + Eq + std::hash::Hash,
+    F: Fn(&A) -> C,
+{
+    let mut result: HashMap<C, Vec<(&A, B)>> = HashMap::new();
+    for (a, b) in list {
+        let c = by(a);
+        let values = match result.get_mut(&c) {
+            Some(v) => v,
+            None => {
+                result.insert(c, Vec::new());
+                result.get_mut(&c).expect("Must be here")
+            }
+        };
+        values.push((a, *b));
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn group_by_str() {
+        let list = [(&"A", 10), (&"XA", 30), (&"B", 20), (&"XB", 40)];
+        let result = group_by(&list, |e| e.len());
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[&1], vec![(&"A", 10), (&"B", 20)]);
+        assert_eq!(result[&2], vec![(&"XA", 30), (&"XB", 40)]);
+    }
 
     #[test]
     fn collect_frequency_50() {
