@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 pub trait DivideList {
-    type T;
+    type T: ?Sized;
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&Self::T>>
     where
@@ -34,9 +34,51 @@ impl<T> DivideList for [T] {
     }
 }
 
+impl<T: ?Sized> DivideList for Vec<&T> {
+    type T = T;
+
+    fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&T>>
+    where
+        K: Copy + Eq + Hash,
+        F: Fn(&T) -> K,
+    {
+        let mut result: HashMap<K, Vec<&T>> = HashMap::new();
+        for t in self {
+            let c = by(t);
+            let values = match result.get_mut(&c) {
+                Some(v) => v,
+                None => {
+                    result.insert(c, Vec::new());
+                    result.get_mut(&c).expect("Must be here")
+                }
+            };
+            values.push(t);
+        }
+        result
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gather_by_vec() {
+        let list = vec!["A", "XA", "B", "XB"];
+        let result = list.divide_by(|s| s.len());
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[&1], vec!["A", "B"]);
+        assert_eq!(result[&2], vec!["XA", "XB"]);
+    }
+
+    #[test]
+    fn gather_by_array() {
+        let list = ["A", "XA", "B", "XB"];
+        let result = list.divide_by(|s| s.len());
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[&1], vec![&"A", &"B"]);
+        assert_eq!(result[&2], vec![&"XA", &"XB"]);
+    }
 
     #[test]
     fn gather_by_str() {
