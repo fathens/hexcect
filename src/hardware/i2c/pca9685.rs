@@ -24,10 +24,10 @@ impl PCA9685 {
     pub fn collect_frequency(v: f64) -> (f64, u8) {
         let prescale = {
             let v = OSC / (PULSE_BASE * v) - 1.0;
-            v.max(3.0).min(255.0) as u8
+            v.max(3.0).min(255.0)
         };
-        let frequency = OSC / (PULSE_BASE * (prescale as f64 + 1.0));
-        (frequency, prescale)
+        let frequency = OSC / (PULSE_BASE * (prescale + 1.0));
+        (frequency, prescale as u8)
     }
 
     pub fn calc_pulse(rate: f64) -> u16 {
