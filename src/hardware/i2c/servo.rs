@@ -105,7 +105,10 @@ mod tests {
     fn calc_pulse_half() {
         let servo = ServoMotor::new(Channel::C0, 50.0, 0.5, 2.4);
         let pulse = servo.calc_pulse(0.5);
-        assert_eq!((pulse * 1000.0 * 10.0).round(), (0.5 + 2.4) / 2.0 * 50.0 * 10.0);
+        assert_eq!(
+            (pulse * 1000.0 * 10.0).round(),
+            (0.5 + 2.4) / 2.0 * 50.0 * 10.0
+        );
     }
 
     #[test]
