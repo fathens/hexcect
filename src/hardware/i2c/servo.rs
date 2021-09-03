@@ -53,7 +53,9 @@ pub struct SG90_180 {
 impl SG90_180 {
     pub fn new(channel: Channel, frequency: f64, min_width: f64, max_width: f64) -> SG90_180 {
         let servo = ServoMotor::new(channel, frequency, min_width, max_width);
-        SG90_180 { servo }
+        SG90_180 {
+            servo
+        }
     }
 
     fn calc_angle_rate(angle: f64) -> f64 {
