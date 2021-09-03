@@ -1,0 +1,9 @@
+[package]
+name = "hexcect"
+version = "0.1.1"
+edition = "2018"
+
+[dependencies]
+pwm-pca9685 = "0.3.1"
+linux-embedded-hal = "0.3.0"
+i2cdev = "0.4.4"
