@@ -82,3 +82,61 @@ impl HasChannel for SG90_180 {
         self.servo.channel()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn calc_pulse_min() {
+        let servo = ServoMotor::new(Channel::C0, 50.0, 0.5, 2.4);
+        let pulse = servo.calc_pulse(0.0);
+        assert_eq!((pulse * 1000.0).round(), 0.5 * 50.0);
+    }
+
+    #[test]
+    fn calc_pulse_max() {
+        let servo = ServoMotor::new(Channel::C0, 50.0, 0.5, 2.4);
+        let pulse = servo.calc_pulse(1.0);
+        assert_eq!((pulse * 1000.0).round(), 2.4 * 50.0);
+    }
+
+    #[test]
+    fn calc_pulse_half() {
+        let servo = ServoMotor::new(Channel::C0, 50.0, 0.5, 2.4);
+        let pulse = servo.calc_pulse(0.5);
+        assert_eq!((pulse * 1000.0 * 10.0).round(), (0.5 + 2.4) / 2.0 * 50.0 * 10.0);
+    }
+
+    #[test]
+    fn calc_angle_rate_half() {
+        let angle = 90.0;
+        let rate = SG90_180::calc_angle_rate(angle);
+        assert_eq!(rate, 0.5);
+    }
+
+    #[test]
+    fn calc_angle_rate_all() {
+        for angle in 0..=180 {
+            let rate = SG90_180::calc_angle_rate(angle as f64);
+            let revert = rate * 180.0;
+            assert_eq!(angle, revert.round() as u8);
+        }
+    }
+
+    #[test]
+    fn calc_angle_rate_under() {
+        for angle in 0..100 {
+            let rate = SG90_180::calc_angle_rate(-angle as f64);
+            assert_eq!(rate, 0.0);
+        }
+    }
+
+    #[test]
+    fn calc_angle_rate_over() {
+        for angle in 180..200 {
+            let rate = SG90_180::calc_angle_rate(angle as f64);
+            assert_eq!(rate, 1.0);
+        }
+    }
+}

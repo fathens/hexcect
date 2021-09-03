@@ -89,3 +89,45 @@ impl PCA9685 {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collect_frequency_50() {
+        let (f, p) = PCA9685::collect_frequency(50.0);
+        assert_eq!(f.round(), 50.0);
+        assert_eq!(p, 121);
+    }
+
+    #[test]
+    fn collect_frequency_under() {
+        for freq in 0..239 {
+            let (f, p) = PCA9685::collect_frequency(freq as f64 / 10.0);
+            assert_eq!((f * 10.0).round(), 238.0);
+            assert_eq!(p, 255);
+        }
+    }
+
+    #[test]
+    fn collect_frequency_upper() {
+        for freq in 15259..20000 {
+            let (f, p) = PCA9685::collect_frequency(freq as f64 / 10.0);
+            assert_eq!((f * 10.0).round(), 15259.0);
+            assert_eq!(p, 3);
+        }
+    }
+
+    #[test]
+    fn calc_pulse_min() {
+        let pulse = PCA9685::calc_pulse(0.0);
+        assert_eq!(pulse, 0);
+    }
+
+    #[test]
+    fn calc_pulse_max() {
+        let pulse = PCA9685::calc_pulse(1.0);
+        assert_eq!(pulse, PULSE_BASE as u16);
+    }
+}
