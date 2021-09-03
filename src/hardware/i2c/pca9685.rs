@@ -1,4 +1,4 @@
-use crate::util::gather_up;
+use crate::util::DivideList;
 use i2cdev::linux::LinuxI2CError;
 use linux_embedded_hal::I2cdev;
 use pwm_pca9685::{Address, Channel, Error, Pca9685};
@@ -67,7 +67,7 @@ impl PCA9685 {
     where
         T: HasChannel + HasPrescale,
     {
-        let by_prescale = gather_up(rates, |e| e.prescale());
+        let by_prescale = rates.divide_by(|(e, _)| e.prescale());
         by_prescale.iter().fold(Ok(()), |prev, (ps, values)| {
             prev?;
             let preset = self.set_prescale(*ps);
