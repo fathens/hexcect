@@ -36,7 +36,7 @@ impl PCA9685 {
 
     pub fn new(bus: u8, addr: u8) -> Result<PCA9685, PwmError> {
         let path = format!("/dev/i2c-{}", bus);
-        let dev = I2cdev::new(&path).map_err(Error::I2C)?;
+        let dev = I2cdev::new(&path).map_err(|e| Error::I2C(e))?;
         let address = Address::from(addr);
         Pca9685::new(dev, address).map(|inner| PCA9685 {
             inner,
