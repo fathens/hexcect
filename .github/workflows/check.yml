@@ -13,9 +13,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
 
-      - uses: mbrobbel/rustfmt-check@master
+      - name: Check format
+        uses: actions-rs/cargo@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: fmt
+          args: --all -- --check
 
       - uses: actions-rs/clippy-check@v1
         with:
