@@ -1,11 +1,24 @@
 use crate::hardware::i2c;
+use i2c::mpu6050::MPU6050;
 use i2c::pca9685::PCA9685;
 use i2c::servo::SG90_180;
+use linux_embedded_hal::I2cdev;
 use pwm_pca9685::Channel;
+use std::io::stdout;
 
-pub fn pos_a() {
-    let i2c = i2c::connect(1).unwrap();
-    match PCA9685::new(i2c, 0x40) {
+use crossterm::{cursor::MoveUp, execute, style::Print};
+
+pub fn demo(action: bool) {
+    let dev = i2c::connect(1).unwrap();
+    if action {
+        servo_demo(dev);
+    } else {
+        gyro_demo(dev);
+    }
+}
+
+pub fn servo_demo(dev: I2cdev) {
+    match PCA9685::new(dev, 0x40) {
         Ok(mut pwm) => {
             println!("Get PCA9685");
             pwm.enable().unwrap();
@@ -29,5 +42,15 @@ pub fn pos_a() {
             println!("OK")
         }
         Err(err) => println!("Error: {:?}", err),
+    }
+}
+
+pub fn gyro_demo(dev: I2cdev) {
+    let mut mpu = MPU6050::new(dev).unwrap();
+
+    loop {
+        let info = mpu.get_infos().unwrap();
+
+        execute!(stdout(), Print(format!("{:?}\n", info)), MoveUp(2),).unwrap();
     }
 }
