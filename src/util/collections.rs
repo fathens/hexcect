@@ -6,7 +6,7 @@ pub trait DivideList {
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&Self::T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&Self::T) -> K;
 }
 
@@ -15,20 +15,12 @@ impl<T> DivideList for [T] {
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&T) -> K,
     {
         let mut result: HashMap<K, Vec<&T>> = HashMap::new();
         for t in self {
-            let c = by(t);
-            let values = match result.get_mut(&c) {
-                Some(v) => v,
-                None => {
-                    result.insert(c, Vec::new());
-                    result.get_mut(&c).expect("Must be here")
-                }
-            };
-            values.push(t);
+            result.entry(by(t)).or_insert_with(Vec::new).push(t);
         }
         result
     }
@@ -39,20 +31,12 @@ impl<T: ?Sized> DivideList for Vec<&T> {
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&T) -> K,
     {
         let mut result: HashMap<K, Vec<&T>> = HashMap::new();
         for t in self {
-            let c = by(t);
-            let values = match result.get_mut(&c) {
-                Some(v) => v,
-                None => {
-                    result.insert(c, Vec::new());
-                    result.get_mut(&c).expect("Must be here")
-                }
-            };
-            values.push(t);
+            result.entry(by(t)).or_insert_with(Vec::new).push(t);
         }
         result
     }
