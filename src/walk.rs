@@ -4,7 +4,8 @@ use i2c::servo::SG90_180;
 use pwm_pca9685::Channel;
 
 pub fn pos_a() {
-    match PCA9685::new(1, 0x40) {
+    let i2c = i2c::connect(1).unwrap();
+    match PCA9685::new(i2c, 0x40) {
         Ok(mut pwm) => {
             println!("Get PCA9685");
             pwm.enable().unwrap();
