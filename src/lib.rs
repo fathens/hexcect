@@ -1,7 +1,7 @@
-mod hardware;
-mod util;
-mod walk;
+pub mod hardware;
+pub mod util;
+pub mod walk;
 
 pub fn check() {
-    walk::demo(false)
+    walk::pos();
 }

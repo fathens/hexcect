@@ -9,11 +9,17 @@ pub struct MPU6050 {
 }
 
 #[derive(Debug)]
+pub struct XYZ {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+#[derive(Debug)]
 pub struct MpuInfo {
     temp: f32,
-    gyro: String,
-    acc: String,
-    rp: String,
+    gyro: XYZ,
+    acc: XYZ,
 }
 
 impl MPU6050 {
@@ -25,20 +31,25 @@ impl MPU6050 {
     }
 
     pub fn get_infos(&mut self) -> Result<MpuInfo, MpuError> {
-        // get roll and pitch estimate
-        let rp = self.inner.get_acc_angles()?.to_string();
-        // get temp
         let temp = self.inner.get_temp()?;
-        // get gyro data, scaled with sensitivity
-        let gyro = self.inner.get_gyro()?.to_string();
-        // get accelerometer data, scaled with sensitivity
-        let acc = self.inner.get_acc()?.to_string();
+        let gyro_vec = self.inner.get_gyro()?;
+        let acc_vec = self.inner.get_acc()?;
+
+        let gyro = gyro_vec.as_slice();
+        let acc = acc_vec.as_slice();
 
         let info = MpuInfo {
             temp,
-            rp,
-            gyro,
-            acc,
+            gyro: XYZ {
+                x: gyro[0],
+                y: gyro[1],
+                z: gyro[2],
+            },
+            acc: XYZ {
+                x: acc[0],
+                y: acc[1],
+                z: acc[2],
+            },
         };
         Ok(info)
     }
