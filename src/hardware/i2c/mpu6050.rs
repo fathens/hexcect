@@ -1,55 +1,47 @@
-use i2cdev::linux::LinuxI2CError;
-use linux_embedded_hal::{Delay, I2cdev};
-use mpu6050::*;
+mod raw_data;
+mod register;
 
-type MpuError = Mpu6050Error<LinuxI2CError>;
+use i2cdev::linux::LinuxI2CError;
+use linux_embedded_hal::I2cdev;
+use raw_data::*;
+use register::*;
+use std::io::Result;
+
+pub enum Address {
+    LOW,
+    HIGH,
+    Custom(u8),
+}
+
+impl From<Address> for u8 {
+    fn from(a: Address) -> u8 {
+        match a {
+            Address::LOW => 0x68,
+            Address::HIGH => 0x69,
+            Address::Custom(v) => v,
+        }
+    }
+}
 
 pub struct MPU6050 {
-    pub inner: Mpu6050<I2cdev>,
+    dev: I2cdev,
+    address: Address,
 }
 
-#[derive(Debug)]
-pub struct XYZ {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-#[derive(Debug)]
-pub struct MpuInfo {
-    temp: f32,
-    gyro: XYZ,
-    acc: XYZ,
+trait DevI2c {
+    fn write() -> Result<()>;
 }
 
 impl MPU6050 {
-    pub fn new(dev: I2cdev) -> Result<MPU6050, MpuError> {
-        let mut inner = Mpu6050::new(dev);
-        let mut delay = Delay;
-        inner.init(&mut delay)?;
-        Ok(MPU6050 { inner })
+    pub fn new(dev: I2cdev, address: Address) -> Result<MPU6050> {
+        Ok(MPU6050 { dev, address })
     }
 
-    pub fn get_infos(&mut self) -> Result<MpuInfo, MpuError> {
-        let temp = self.inner.get_temp()?;
-        let gyro_vec = self.inner.get_gyro()?;
-        let acc_vec = self.inner.get_acc()?;
-
-        let gyro = gyro_vec.as_slice();
-        let acc = acc_vec.as_slice();
-
-        let info = MpuInfo {
-            temp,
-            gyro: XYZ {
-                x: gyro[0],
-                y: gyro[1],
-                z: gyro[2],
-            },
-            acc: XYZ {
-                x: acc[0],
-                y: acc[1],
-                z: acc[2],
-            },
+    pub fn get_infos(&mut self) -> Result<RawData> {
+        let info = RawData {
+            temp: 0.0,
+            gyro: GyroData { x: 0, y: 0, z: 0 },
+            acc: AccData { x: 0, y: 0, z: 0 },
         };
         Ok(info)
     }

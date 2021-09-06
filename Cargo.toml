@@ -7,7 +7,6 @@ edition = "2018"
 pwm-pca9685 = "0.3.1"
 linux-embedded-hal = "0.3.0"
 i2cdev = "0.4.4"
-mpu6050 = "0.1.4"
 
 [dev-dependencies]
 crossterm = "~0.21"
