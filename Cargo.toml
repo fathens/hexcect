@@ -5,8 +5,12 @@ edition = "2018"
 
 [dependencies]
 pwm-pca9685 = "0.3.1"
-linux-embedded-hal = "0.3.0"
+linux-embedded-hal = "~0.3"
+embedded-hal = "~0.2"
 i2cdev = "0.4.4"
+embedded-time = "~0.12"
+num-traits = "~0.2"
+num-derive = "~0.3"
 
 [dev-dependencies]
 crossterm = "~0.21"
