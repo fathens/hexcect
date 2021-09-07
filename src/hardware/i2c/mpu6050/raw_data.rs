@@ -1,19 +1,17 @@
 use crate::model::sensor::{AccInfo, GyroInfo};
-use embedded_time::TimeInt;
-use embedded_time::{duration::*, rate::*};
 use num_derive::FromPrimitive;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RawData {
     pub temp: Temperature,
     pub gyro: GyroData,
     pub accel: AccelData,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Temperature(pub i16);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct GyroData {
     pub x: i16,
     pub y: i16,
@@ -26,7 +24,7 @@ impl GyroData {
     }
 }
 
-#[derive(Clone, Copy, FromPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[repr(u8)]
 pub enum GyroFullScale {
     Deg250,
@@ -42,7 +40,7 @@ impl GyroFullScale {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AccelData {
     pub x: i16,
     pub y: i16,
@@ -55,7 +53,7 @@ impl AccelData {
     }
 }
 
-#[derive(Clone, Copy, FromPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AccelFullScale {
     G2,
@@ -66,142 +64,37 @@ pub enum AccelFullScale {
 
 impl AccelFullScale {
     pub fn max(&self) -> f32 {
-        let s = 1 << (*self as u8);
-        2.0 * s as f32
+        let s = 1 << (*self as u8 + 1);
+        s as f32
     }
 }
 
-#[derive(Clone, Copy, FromPrimitive)]
-#[repr(u8)]
-pub enum FrameSync {
-    Disabled,
-    TempOutL,
-    GyroXoutL,
-    GyroYoutL,
-    GyroZoutL,
-    AccelXoutL,
-    AccelYoutL,
-    AccelZoutL,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_traits::FromPrimitive;
 
-#[derive(Clone, Copy, FromPrimitive)]
-#[repr(u8)]
-pub enum DigitalLowPassFilterCfg {
-    V0,
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
-}
-
-pub struct DlpFilter {
-    bandwidth: Hertz,
-    delay: Microseconds<u32>,
-    fs: Kilohertz,
-}
-
-impl DigitalLowPassFilterCfg {
-    pub fn accel(&self) -> DlpFilter {
-        match self {
-            DigitalLowPassFilterCfg::V0 => DlpFilter {
-                bandwidth: 260_u32.Hz(),
-                delay: 0.0.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V1 => DlpFilter {
-                bandwidth: 184_u32.Hz(),
-                delay: 2.0.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V2 => DlpFilter {
-                bandwidth: 94_u32.Hz(),
-                delay: 3.0.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V3 => DlpFilter {
-                bandwidth: 44_u32.Hz(),
-                delay: 4.9.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V4 => DlpFilter {
-                bandwidth: 21_u32.Hz(),
-                delay: 8.5.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V5 => DlpFilter {
-                bandwidth: 10_u32.Hz(),
-                delay: 13.8.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V6 => DlpFilter {
-                bandwidth: 5_u32.Hz(),
-                delay: 19.0.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V7 => DlpFilter {
-                bandwidth: 0_u32.Hz(),
-                delay: 0.0.milliseconds(),
-                fs: 0_u32.kHz(),
-            },
+    #[test]
+    fn accel_fs_as_u8() {
+        assert_eq!(AccelFullScale::G2 as u8, 0);
+        assert_eq!(AccelFullScale::G4 as u8, 1);
+        assert_eq!(AccelFullScale::G8 as u8, 2);
+        assert_eq!(AccelFullScale::G16 as u8, 3);
+        for i in 0..4 {
+            let a = AccelFullScale::from_u8(i).expect("Must be !");
+            assert_eq!(i, a as u8);
         }
     }
 
-    pub fn gyro(&self) -> DlpFilter {
-        match self {
-            DigitalLowPassFilterCfg::V0 => DlpFilter {
-                bandwidth: 256_u32.Hz(),
-                delay: 0.98.milliseconds(),
-                fs: 8_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V1 => DlpFilter {
-                bandwidth: 188_u32.Hz(),
-                delay: 1.9.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V2 => DlpFilter {
-                bandwidth: 98_u32.Hz(),
-                delay: 2.8.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V3 => DlpFilter {
-                bandwidth: 42_u32.Hz(),
-                delay: 4.8.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V4 => DlpFilter {
-                bandwidth: 20_u32.Hz(),
-                delay: 8.3.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V5 => DlpFilter {
-                bandwidth: 10_u32.Hz(),
-                delay: 13.4.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V6 => DlpFilter {
-                bandwidth: 5_u32.Hz(),
-                delay: 18.6.milliseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V7 => DlpFilter {
-                bandwidth: 0_u32.Hz(),
-                delay: 0.0.milliseconds(),
-                fs: 8_u32.kHz(),
-            },
+    #[test]
+    fn gyro_fs_as_u8() {
+        assert_eq!(GyroFullScale::Deg250 as u8, 0);
+        assert_eq!(GyroFullScale::Deg500 as u8, 1);
+        assert_eq!(GyroFullScale::Deg1000 as u8, 2);
+        assert_eq!(GyroFullScale::Deg2000 as u8, 3);
+        for i in 0..4 {
+            let a = GyroFullScale::from_u8(i).expect("Must be !");
+            assert_eq!(i, a as u8);
         }
-    }
-}
-
-/// Float で計算して端数やオーバーフローは切り捨てる変換を実装
-trait FloatDuration<T: TimeInt> {
-    fn milliseconds(self) -> Microseconds<T>;
-}
-
-impl FloatDuration<u32> for f32 {
-    fn milliseconds(self) -> Microseconds<u32> {
-        ((self * 1000.0) as u32).microseconds()
     }
 }
