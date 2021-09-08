@@ -1,6 +1,8 @@
+pub mod error;
 mod raw_data;
 mod register;
 
+use error::Error;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use parking_lot::Mutex;
 use raw_data::*;
@@ -23,17 +25,6 @@ impl Address {
             Address::Custom(v) => v,
         }
     }
-}
-
-#[derive(Debug)]
-pub enum Error<T>
-where
-    T: Write + WriteRead,
-    <T as Write>::Error: core::fmt::Debug,
-    <T as WriteRead>::Error: core::fmt::Debug,
-{
-    WriteError(<T as Write>::Error),
-    WriteReadError(<T as WriteRead>::Error),
 }
 
 pub struct MPU6050<T> {
