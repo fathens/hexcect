@@ -2,12 +2,11 @@ mod raw_data;
 mod register;
 
 use embedded_hal::blocking::i2c::{Write, WriteRead};
-use i2cdev::linux::LinuxI2CError;
-use linux_embedded_hal::I2cdev;
+use parking_lot::Mutex;
 use raw_data::*;
 use register::*;
-
-type Result<T> = std::result::Result<T, LinuxI2CError>;
+use std::result::Result;
+use std::sync::Arc;
 
 pub enum Address {
     LOW,
@@ -25,35 +24,58 @@ impl Address {
     }
 }
 
-pub struct MPU6050 {
-    dev: I2cdev,
+#[derive(Debug)]
+pub enum Error<T>
+where
+    T: Write + WriteRead,
+    <T as Write>::Error: core::fmt::Debug,
+    <T as WriteRead>::Error: core::fmt::Debug,
+{
+    WriteError(<T as Write>::Error),
+    WriteReadError(<T as WriteRead>::Error),
+}
+
+pub struct MPU6050<T> {
+    dev: Arc<Mutex<T>>,
     address: Address,
 }
 
-impl MPU6050 {
-    pub fn new(dev: I2cdev, address: Address) -> Result<MPU6050> {
+impl<T> MPU6050<T>
+where
+    T: Write + WriteRead,
+    <T as Write>::Error: core::fmt::Debug,
+    <T as WriteRead>::Error: core::fmt::Debug,
+{
+    pub fn new(dev: Arc<Mutex<T>>, address: Address) -> Result<MPU6050<T>, Error<T>> {
         Ok(MPU6050 { dev, address })
     }
 
-    pub fn get_infos(&mut self) -> Result<RawData> {
+    pub fn get_infos(&self) -> Result<RawData, Error<T>> {
         let mut buf = [0; 14];
         self.read_registers(AccelData::ADDR, &mut buf)?;
         Ok(RawData::from(buf))
     }
 
-    fn read_registers(&mut self, reg: RegAddr, res: &mut [u8]) -> Result<()> {
-        self.dev
-            .write_read(self.address.as_u8(), &[reg.as_u8()], res)
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
+
+    fn read_registers(&self, reg: RegAddr, res: &mut [u8]) -> Result<(), Error<T>> {
+        let mut dev = self.dev.lock();
+        dev.write_read(self.address.as_u8(), &[reg.as_u8()], res)
+            .map_err(Error::WriteReadError)
     }
 
-    fn read_register(&mut self, reg: RegAddr) -> Result<u8> {
+    fn read_register(&self, reg: RegAddr) -> Result<u8, Error<T>> {
         let mut buf = [0; 1];
-        self.dev
-            .write_read(self.address.as_u8(), &[reg.as_u8()], &mut buf)?;
+        let mut dev = self.dev.lock();
+        dev.write_read(self.address.as_u8(), &[reg.as_u8()], &mut buf)
+            .map_err(Error::WriteReadError)?;
         Ok(buf[0])
     }
 
-    fn write_register(&mut self, reg: RegAddr, v: u8) -> Result<()> {
-        self.dev.write(self.address.as_u8(), &[reg.as_u8(), v])
+    fn write_register(&self, reg: RegAddr, v: u8) -> Result<(), Error<T>> {
+        let mut dev = self.dev.lock();
+        dev.write(self.address.as_u8(), &[reg.as_u8(), v])
+            .map_err(Error::WriteError)
     }
 }
