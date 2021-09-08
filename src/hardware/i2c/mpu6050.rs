@@ -2,13 +2,11 @@ pub mod error;
 mod raw_data;
 mod register;
 
-use error::Error;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
-use parking_lot::Mutex;
+use error::Error;
 use raw_data::*;
 use register::*;
 use std::result::Result;
-use std::sync::Arc;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Address {
@@ -28,7 +26,7 @@ impl Address {
 }
 
 pub struct MPU6050<T> {
-    dev: Arc<Mutex<T>>,
+    dev: T,
     address: Address,
 }
 
@@ -38,36 +36,36 @@ where
     <T as Write>::Error: core::fmt::Debug,
     <T as WriteRead>::Error: core::fmt::Debug,
 {
-    pub fn new(dev: Arc<Mutex<T>>, address: Address) -> Result<MPU6050<T>, Error<T>> {
+    pub fn new(dev: T, address: Address) -> Result<MPU6050<T>, Error<T>> {
         Ok(MPU6050 { dev, address })
     }
 
-    fn read_bytes(&self, reg: RegAddr, res: &mut [u8]) -> Result<(), Error<T>> {
-        let mut dev = self.dev.lock();
-        dev.write_read(self.address.as_u8(), &[reg.as_u8()], res)
+    fn read_bytes(&mut self, reg: RegAddr, res: &mut [u8]) -> Result<(), Error<T>> {
+        self.dev
+            .write_read(self.address.as_u8(), &[reg.as_u8()], res)
             .map_err(Error::WriteReadError)
     }
 
-    fn read_byte(&self, reg: RegAddr) -> Result<u8, Error<T>> {
+    fn read_byte(&mut self, reg: RegAddr) -> Result<u8, Error<T>> {
         let mut buf = [0; 1];
         self.read_bytes(reg, &mut buf)?;
         Ok(buf[0])
     }
 
-    fn write_byte(&self, reg: RegAddr, v: u8) -> Result<(), Error<T>> {
-        let mut dev = self.dev.lock();
-        dev.write(self.address.as_u8(), &[reg.as_u8(), v])
+    fn write_byte(&mut self, reg: RegAddr, v: u8) -> Result<(), Error<T>> {
+        self.dev
+            .write(self.address.as_u8(), &[reg.as_u8(), v])
             .map_err(Error::WriteError)
     }
 
     // ----------------------------------------------------------------
 
-    fn read_register<R: Register>(&self) -> Result<R, Error<T>> {
+    fn read_register<R: Register>(&mut self) -> Result<R, Error<T>> {
         let byte = self.read_byte(R::ADDR)?;
         Ok(R::from(byte))
     }
 
-    fn write_register<R: Register>(&self, reg_value: R) -> Result<(), Error<T>> {
+    fn write_register<R: Register>(&mut self, reg_value: R) -> Result<(), Error<T>> {
         self.write_byte(R::ADDR, reg_value.as_u8())
     }
 
@@ -75,7 +73,7 @@ where
     // ----------------------------------------------------------------
 
     pub fn set_digital_lowpass_filter(
-        &self,
+        &mut self,
         filter: DigitalLowPassFilterCfg,
     ) -> Result<(), Error<T>> {
         let mut value: Configure = self.read_register()?;
@@ -83,19 +81,19 @@ where
         self.write_register(value)
     }
 
-    pub fn set_accel_full_scale(&self, scale: AccelFullScale) -> Result<(), Error<T>> {
+    pub fn set_accel_full_scale(&mut self, scale: AccelFullScale) -> Result<(), Error<T>> {
         let mut value: AccelConfig = self.read_register()?;
         value.afs_sel = scale;
         self.write_register(value)
     }
 
-    pub fn set_gyro_full_scale(&self, scale: GyroFullScale) -> Result<(), Error<T>> {
+    pub fn set_gyro_full_scale(&mut self, scale: GyroFullScale) -> Result<(), Error<T>> {
         let mut value: GyroConfig = self.read_register()?;
         value.fs_sel = scale;
         self.write_register(value)
     }
 
-    pub fn get_infos(&self) -> Result<RawData, Error<T>> {
+    pub fn get_infos(&mut self) -> Result<RawData, Error<T>> {
         let mut buf = [0; 14];
         self.read_bytes(AccelData::ADDR, &mut buf)?;
         Ok(RawData::from(buf))
