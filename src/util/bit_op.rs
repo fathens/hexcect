@@ -9,8 +9,13 @@ pub trait SingleByte {
             .sum()
     }
 
-    fn at(&self, i: u8) -> bool {
+    fn get(&self, i: usize) -> bool {
         self.value() & (1 << i) != 0
+    }
+
+    fn set(&self, i: usize, b: bool) -> u8 {
+        let v = if b { 1 } else { 0 };
+        self.value() | (v << i)
     }
 
     /// mask の分だけのビット数を offset の位置から取り出す。

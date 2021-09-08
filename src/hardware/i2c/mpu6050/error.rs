@@ -1,5 +1,5 @@
-use embedded_hal::blocking::i2c::{Write, WriteRead};
 use core::fmt::Formatter;
+use embedded_hal::blocking::i2c::{Write, WriteRead};
 
 pub enum Error<T>
 where
