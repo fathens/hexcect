@@ -1,5 +1,45 @@
 use super::*;
-use embedded_time::TimeInt;
+use embedded_time::{duration::*, rate::*};
+
+
+#[test]
+fn singlebyte_get_with_mask() {
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 0), 0b110);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 1), 0b011);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 2), 0b001);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 3), 0b100);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 4), 0b010);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 5), 0b101);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 6), 0b010);
+    assert_eq!(0b_1010_0110.get_with_mask(0b111, 7), 0b001);
+
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 0), 0b10);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 1), 0b11);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 2), 0b01);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 3), 0b00);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 4), 0b10);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 5), 0b01);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 6), 0b10);
+    assert_eq!(0b_1010_0110.get_with_mask(0b11, 7), 0b01);
+}
+
+#[test]
+fn singlebyte_set_with_mask() {
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 0, 0b000), 0b_1110_0000);
+
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 0, 0b010), 0b_1110_0010);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 1, 0b010), 0b_1110_0101);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 2, 0b010), 0b_1110_1001);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 3, 0b010), 0b_1101_0101);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 4, 0b010), 0b_1010_0101);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 5, 0b010), 0b_0100_0101);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 6, 0b010), 0b_1010_0101);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 7, 0b010), 0b_0110_0101);
+
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 1, 0b111), 0b_1110_1111);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 2, 0b110), 0b_1111_1001);
+    assert_eq!(0b_1110_0101.set_with_mask(0b111, 3, 0b110), 0b_1111_0101);
+}
 
 #[test]
 fn configure_from_u8() {
@@ -11,14 +51,21 @@ fn configure_from_u8() {
             let v = (ext_sync_set as u8) * 8 + (dlpf_cfg as u8);
             let config = Configure::from(v);
 
-            assert_eq!(
-                config,
-                Configure {
-                    ext_sync_set,
-                    dlpf_cfg
-                }
-            );
-            assert_eq!(config.as_u8(), v);
+            assert_eq!(v, config.into());
+            assert_eq!(config.get_fsync(), ext_sync_set);
+            assert_eq!(config.get_dlpf(), dlpf_cfg);
+
+            let mut config = config;
+
+            let ext_sync_set = FrameSync::from_u8((a + 1) % 8).expect("Must be !");
+            config.set_fsync(ext_sync_set);
+            assert_eq!(config.get_fsync(), ext_sync_set);
+            assert_eq!(config.get_dlpf(), dlpf_cfg);
+
+            let dlpf_cfg = DigitalLowPassFilterCfg::from_u8((b + 1) % 8).expect("Must be !");
+            config.set_dlpf(dlpf_cfg);
+            assert_eq!(config.get_fsync(), ext_sync_set);
+            assert_eq!(config.get_dlpf(), dlpf_cfg);
         }
     }
 }
@@ -33,8 +80,21 @@ fn gyro_cfg_from_u8() {
             let v = st_xyz.as_u8() * 32 + (fs_sel as u8) * 8;
             let c = GyroConfig::from(v);
 
-            assert_eq!(c, GyroConfig { st_xyz, fs_sel });
-            assert_eq!(c.as_u8(), v);
+            assert_eq!(v, c.into());
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), fs_sel);
+
+            let mut c = c;
+
+            let st_xyz = FlagsXYZ((a + 1) % 8);
+            c.set_xyz(st_xyz);
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), fs_sel);
+
+            let fs_sel = GyroFullScale::from_u8((b + 1) % 4).expect("Must be !");
+            c.set_scale(fs_sel);
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), fs_sel);
         }
     }
 }
@@ -49,8 +109,21 @@ fn accel_cfg_from_u8() {
             let v = st_xyz.as_u8() * 32 + (afs_sel as u8) * 8;
             let c = AccelConfig::from(v);
 
-            assert_eq!(c, AccelConfig { st_xyz, afs_sel });
-            assert_eq!(c.as_u8(), v);
+            assert_eq!(v, c.into());
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), afs_sel);
+
+            let mut c = c;
+
+            let st_xyz = FlagsXYZ((a + 1) % 8);
+            c.set_xyz(st_xyz);
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), afs_sel);
+
+            let afs_sel = AccelFullScale::from_u8((b + 1) % 4).expect("Must be !");
+            c.set_scale(afs_sel);
+            assert_eq!(c.get_xyz(), st_xyz);
+            assert_eq!(c.get_scale(), afs_sel);
         }
     }
 }
@@ -235,7 +308,7 @@ fn dlpf_cfg() {
 }
 
 /// Float で計算して端数やオーバーフローは切り捨てる変換を実装
-trait FloatDuration<T: TimeInt> {
+trait FloatDuration<T: embedded_time::TimeInt> {
     fn milliseconds(self) -> Microseconds<T>;
 }
 

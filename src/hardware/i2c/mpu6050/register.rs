@@ -1,274 +1,112 @@
+mod attributes;
+
+#[cfg(test)]
+mod tests;
+
 use super::raw_data::*;
-use embedded_time::{duration::*, rate::*};
-use num_derive::FromPrimitive;
+use crate::util::SingleByte;
+pub use attributes::*;
+
+use core::fmt::Debug;
+use derive_more::{From, Into};
 use num_traits::FromPrimitive;
 use std::convert::TryInto;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
 pub struct RegAddr(u8);
 
-impl RegAddr {
-    pub fn as_u8(&self) -> u8 {
-        self.0
-    }
-}
-
-pub trait Register: From<u8> {
+pub trait Register: From<u8> + Debug + Copy + Eq {
     const ADDR: RegAddr;
-
-    fn as_u8(&self) -> u8;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Configure {
-    pub ext_sync_set: FrameSync,
-    pub dlpf_cfg: DigitalLowPassFilterCfg,
+/// This register configures the external Frame Synchronization (FSYNC) pin sampling and
+/// the Digital Low Pass Filter (DLPF) setting for both the gyroscopes and accelerometers.
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct Configure(u8);
+
+impl Configure {
+    pub fn get_fsync(&self) -> FrameSync {
+        FrameSync::from_u8(self.0.get_with_mask(0b111, 3))
+            .expect("A value of 3 bits must be converted to FSYNC.")
+    }
+
+    pub fn get_dlpf(&self) -> DigitalLowPassFilterCfg {
+        DigitalLowPassFilterCfg::from_u8(self.0.get_with_mask(0b111, 0))
+            .expect("A value of 3 bits must be converted to DLPF_CGF.")
+    }
+
+    pub fn set_fsync(&mut self, v: FrameSync) -> () {
+        self.0 = self.0.set_with_mask(0b111, 3, v as u8);
+    }
+
+    pub fn set_dlpf(&mut self, v: DigitalLowPassFilterCfg) -> () {
+        self.0 = self.0.set_with_mask(0b111, 0, v as u8);
+    }
 }
 
 impl Register for Configure {
     const ADDR: RegAddr = RegAddr(0x1a);
-
-    fn as_u8(&self) -> u8 {
-        let a = (self.ext_sync_set as u8) << 3;
-        let b = self.dlpf_cfg as u8;
-        a + b
-    }
 }
 
-impl From<u8> for Configure {
-    fn from(v: u8) -> Self {
-        Self {
-            ext_sync_set: FrameSync::from_u8((v >> 3) & 7)
-                .expect("A value of 3 bits must be converted to GyroFullScale."),
-            dlpf_cfg: DigitalLowPassFilterCfg::from_u8(v & 7)
-                .expect("A value of 3 bits must be converted to GyroFullScale."),
-        }
-    }
-}
+/// This register is used to trigger gyroscope self-test and
+/// configure the gyroscopes’ full scale range.
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct GyroConfig(u8);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GyroConfig {
-    pub st_xyz: FlagsXYZ,
-    pub fs_sel: GyroFullScale,
+impl GyroConfig {
+    pub fn get_xyz(&self) -> FlagsXYZ {
+        FlagsXYZ(self.0.get_with_mask(0b111, 5))
+    }
+
+    pub fn get_scale(&self) -> GyroFullScale {
+        GyroFullScale::from_u8(self.0.get_with_mask(0b11, 3))
+            .expect("A value of 2 bits must be converted to GyroFullScale.")
+    }
+
+    pub fn set_xyz(&mut self, v: FlagsXYZ) -> () {
+        self.0 = self.0.set_with_mask(0b111, 5, v.as_u8());
+    }
+
+    pub fn set_scale(&mut self, v: GyroFullScale) -> () {
+        self.0 = self.0.set_with_mask(0b11, 3, v as u8);
+    }
 }
 
 impl Register for GyroConfig {
     const ADDR: RegAddr = RegAddr(0x1b);
-
-    fn as_u8(&self) -> u8 {
-        let a = self.st_xyz.as_u8() << 5;
-        let b = (self.fs_sel as u8) << 3;
-        a + b
-    }
 }
 
-impl From<u8> for GyroConfig {
-    fn from(v: u8) -> Self {
-        Self {
-            st_xyz: FlagsXYZ((v >> 5) & 7),
-            fs_sel: GyroFullScale::from_u8((v >> 3) & 3)
-                .expect("A value of 2 bits must be converted to GyroFullScale."),
-        }
-    }
-}
+/// This register is used to trigger accelerometer self test and
+/// configure the accelerometer full scale range.
+/// This register also configures the Digital High Pass Filter (DHPF).
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct AccelConfig(u8);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AccelConfig {
-    pub st_xyz: FlagsXYZ,
-    pub afs_sel: AccelFullScale,
+impl AccelConfig {
+    pub fn get_xyz(&self) -> FlagsXYZ {
+        FlagsXYZ(self.0.get_with_mask(0b111, 5))
+    }
+
+    pub fn get_scale(&self) -> AccelFullScale {
+        AccelFullScale::from_u8(self.0.get_with_mask(0b11, 3))
+            .expect("A value of 2 bits must be converted to AccelFullScale.")
+    }
+
+    pub fn set_xyz(&mut self, v: FlagsXYZ) -> () {
+        self.0 = self.0.set_with_mask(0b111, 5, v.as_u8());
+    }
+
+    pub fn set_scale(&mut self, v: AccelFullScale) -> () {
+        self.0 = self.0.set_with_mask(0b11, 3, v as u8);
+    }
 }
 
 impl Register for AccelConfig {
     const ADDR: RegAddr = RegAddr(0x1c);
-
-    fn as_u8(&self) -> u8 {
-        let a = self.st_xyz.as_u8() << 5;
-        let b = (self.afs_sel as u8) << 3;
-        a + b
-    }
 }
 
-impl From<u8> for AccelConfig {
-    fn from(v: u8) -> Self {
-        Self {
-            st_xyz: FlagsXYZ((v >> 5) & 7),
-            afs_sel: AccelFullScale::from_u8((v >> 3) & 3)
-                .expect("A value of 2 bits must be converted to AccelFullScale."),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FlagsXYZ(u8);
-
-impl FlagsXYZ {
-    pub fn new(x: bool, y: bool, z: bool) -> Self {
-        Self(u8::from_bits(&[z, y, x]))
-    }
-
-    pub fn x(&self) -> bool {
-        self.0.at(2)
-    }
-
-    pub fn y(&self) -> bool {
-        self.0.at(1)
-    }
-
-    pub fn z(&self) -> bool {
-        self.0.at(0)
-    }
-
-    pub fn as_u8(&self) -> u8 {
-        self.0
-    }
-}
-
-trait SingleByte {
-    fn from_bits(bs: &[bool]) -> u8 {
-        assert!(bs.len() <= 8);
-        bs.iter()
-            .enumerate()
-            .map(|(i, b)| if *b { 1 << i } else { 0 })
-            .sum()
-    }
-
-    fn at(&self, i: u8) -> bool {
-        self.value() & (1 << i) != 0
-    }
-
-    fn value(&self) -> u8;
-}
-
-impl SingleByte for u8 {
-    fn value(&self) -> u8 {
-        *self
-    }
-}
-
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
-#[repr(u8)]
-pub enum FrameSync {
-    Disabled,
-    TempOutL,
-    GyroXoutL,
-    GyroYoutL,
-    GyroZoutL,
-    AccelXoutL,
-    AccelYoutL,
-    AccelZoutL,
-}
-
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
-#[repr(u8)]
-pub enum DigitalLowPassFilterCfg {
-    V0,
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct DlpFilter {
-    bandwidth: Hertz,
-    delay: Microseconds<u32>,
-    fs: Kilohertz,
-}
-
-impl DigitalLowPassFilterCfg {
-    pub fn accel(&self) -> DlpFilter {
-        match self {
-            DigitalLowPassFilterCfg::V0 => DlpFilter {
-                bandwidth: 260_u32.Hz(),
-                delay: 0.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V1 => DlpFilter {
-                bandwidth: 184_u32.Hz(),
-                delay: 2000.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V2 => DlpFilter {
-                bandwidth: 94_u32.Hz(),
-                delay: 3000.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V3 => DlpFilter {
-                bandwidth: 44_u32.Hz(),
-                delay: 4900.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V4 => DlpFilter {
-                bandwidth: 21_u32.Hz(),
-                delay: 8500.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V5 => DlpFilter {
-                bandwidth: 10_u32.Hz(),
-                delay: 13800.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V6 => DlpFilter {
-                bandwidth: 5_u32.Hz(),
-                delay: 19000.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V7 => DlpFilter {
-                bandwidth: 0_u32.Hz(),
-                delay: 0.microseconds(),
-                fs: 0_u32.kHz(),
-            },
-        }
-    }
-
-    pub fn gyro(&self) -> DlpFilter {
-        match self {
-            DigitalLowPassFilterCfg::V0 => DlpFilter {
-                bandwidth: 256_u32.Hz(),
-                delay: 980.microseconds(),
-                fs: 8_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V1 => DlpFilter {
-                bandwidth: 188_u32.Hz(),
-                delay: 1900.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V2 => DlpFilter {
-                bandwidth: 98_u32.Hz(),
-                delay: 2800.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V3 => DlpFilter {
-                bandwidth: 42_u32.Hz(),
-                delay: 4800.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V4 => DlpFilter {
-                bandwidth: 20_u32.Hz(),
-                delay: 8300.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V5 => DlpFilter {
-                bandwidth: 10_u32.Hz(),
-                delay: 13400.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V6 => DlpFilter {
-                bandwidth: 5_u32.Hz(),
-                delay: 18600.microseconds(),
-                fs: 1_u32.kHz(),
-            },
-            DigitalLowPassFilterCfg::V7 => DlpFilter {
-                bandwidth: 0_u32.Hz(),
-                delay: 0.microseconds(),
-                fs: 8_u32.kHz(),
-            },
-        }
-    }
-}
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
 
 pub trait RegisterRange {
     const ADDR: RegAddr;
@@ -326,6 +164,3 @@ fn take2x3(data: [u8; 6]) -> (i16, i16, i16) {
         i16::from_be_bytes([data[4], data[5]]),
     )
 }
-
-#[cfg(test)]
-mod tests;

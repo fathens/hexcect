@@ -42,7 +42,7 @@ where
 
     fn read_bytes(&mut self, reg: RegAddr, res: &mut [u8]) -> Result<(), Error<T>> {
         self.dev
-            .write_read(self.address.as_u8(), &[reg.as_u8()], res)
+            .write_read(self.address.as_u8(), &[reg.into()], res)
             .map_err(Error::WriteReadError)
     }
 
@@ -54,7 +54,7 @@ where
 
     fn write_byte(&mut self, reg: RegAddr, v: u8) -> Result<(), Error<T>> {
         self.dev
-            .write(self.address.as_u8(), &[reg.as_u8(), v])
+            .write(self.address.as_u8(), &[reg.into(), v])
             .map_err(Error::WriteError)
     }
 
@@ -65,8 +65,11 @@ where
         Ok(R::from(byte))
     }
 
-    fn write_register<R: Register>(&mut self, reg_value: R) -> Result<(), Error<T>> {
-        self.write_byte(R::ADDR, reg_value.as_u8())
+    fn write_register<R: Register>(&mut self, reg_value: R) -> Result<(), Error<T>>
+    where
+        u8: From<R>,
+    {
+        self.write_byte(R::ADDR, reg_value.into())
     }
 
     // ----------------------------------------------------------------
@@ -77,19 +80,19 @@ where
         filter: DigitalLowPassFilterCfg,
     ) -> Result<(), Error<T>> {
         let mut value: Configure = self.read_register()?;
-        value.dlpf_cfg = filter;
+        value.set_dlpf(filter);
         self.write_register(value)
     }
 
     pub fn set_accel_full_scale(&mut self, scale: AccelFullScale) -> Result<(), Error<T>> {
         let mut value: AccelConfig = self.read_register()?;
-        value.afs_sel = scale;
+        value.set_scale(scale);
         self.write_register(value)
     }
 
     pub fn set_gyro_full_scale(&mut self, scale: GyroFullScale) -> Result<(), Error<T>> {
         let mut value: GyroConfig = self.read_register()?;
-        value.fs_sel = scale;
+        value.set_scale(scale);
         self.write_register(value)
     }
 

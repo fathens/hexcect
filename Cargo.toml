@@ -12,6 +12,7 @@ embedded-time = "~0.12"
 num-traits = "~0.2"
 num-derive = "~0.3"
 parking_lot = "~0.11"
+derive_more = "~0.99"
 
 [dev-dependencies]
 crossterm = "~0.21"
