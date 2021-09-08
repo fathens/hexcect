@@ -4,6 +4,24 @@ use std::hash::Hash;
 pub trait DivideList {
     type T: ?Sized;
 
+    /// コレクションの各アイテムをその属性別に分類する。
+    ///
+    /// # Examples
+    /// ```
+    /// use hexcect::util::DivideList;
+    ///
+    /// let list = vec!["A", "XA", "B", "XB"];
+    /// let result = list.divide_by(|s| s.len());
+    /// assert_eq!(result.len(), 2);
+    /// assert_eq!(result[&1], vec!["A", "B"]);
+    /// assert_eq!(result[&2], vec!["XA", "XB"]);
+    ///
+    /// let array = ["A", "XA", "B", "XB"];
+    /// let result = array.divide_by(|s| s.len());
+    /// assert_eq!(result.len(), 2);
+    /// assert_eq!(result[&1], vec![&"A", &"B"]);
+    /// assert_eq!(result[&2], vec![&"XA", &"XB"]);
+    /// ```
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&Self::T>>
     where
         K: Eq + Hash,
