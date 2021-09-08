@@ -25,7 +25,7 @@ pub struct Configure {
     pub dlpf_cfg: DigitalLowPassFilterCfg,
 }
 
-impl Configure {
+impl Register for Configure {
     const ADDR: RegAddr = RegAddr(0x1a);
 
     fn as_u8(&self) -> u8 {
@@ -38,8 +38,10 @@ impl Configure {
 impl From<u8> for Configure {
     fn from(v: u8) -> Self {
         Self {
-            ext_sync_set: FrameSync::from_u8((v >> 3) & 7).unwrap(),
-            dlpf_cfg: DigitalLowPassFilterCfg::from_u8(v & 7).unwrap(),
+            ext_sync_set: FrameSync::from_u8((v >> 3) & 7)
+                .expect("A value of 3 bits must be converted to GyroFullScale."),
+            dlpf_cfg: DigitalLowPassFilterCfg::from_u8(v & 7)
+                .expect("A value of 3 bits must be converted to GyroFullScale."),
         }
     }
 }
