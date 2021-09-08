@@ -48,3 +48,47 @@ impl SingleByte for u8 {
         *self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn singlebyte_get_with_mask() {
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 0), 0b110);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 1), 0b011);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 2), 0b001);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 3), 0b100);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 4), 0b010);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 5), 0b101);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 6), 0b010);
+        assert_eq!(0b_1010_0110.get_with_mask(0b111, 7), 0b001);
+
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 0), 0b10);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 1), 0b11);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 2), 0b01);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 3), 0b00);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 4), 0b10);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 5), 0b01);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 6), 0b10);
+        assert_eq!(0b_1010_0110.get_with_mask(0b11, 7), 0b01);
+    }
+
+    #[test]
+    fn singlebyte_set_with_mask() {
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 0, 0b000), 0b_1110_0000);
+
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 0, 0b010), 0b_1110_0010);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 1, 0b010), 0b_1110_0101);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 2, 0b010), 0b_1110_1001);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 3, 0b010), 0b_1101_0101);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 4, 0b010), 0b_1010_0101);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 5, 0b010), 0b_0100_0101);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 6, 0b010), 0b_1010_0101);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 7, 0b010), 0b_0110_0101);
+
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 1, 0b111), 0b_1110_1111);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 2, 0b110), 0b_1111_1001);
+        assert_eq!(0b_1110_0101.set_with_mask(0b111, 3, 0b110), 0b_1111_0101);
+    }
+}
