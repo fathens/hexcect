@@ -125,36 +125,45 @@ impl PwrMgmt1 {
         self.0 = self.0.set_with_mask(0b111, 0, v as u8);
     }
 
-    pub fn get_tempdis(&self) -> TempDis {
-        TempDis::from(self.0.get(3))
+    /// When set to 1, this bit disables the temperature sensor.
+    pub fn get_tempdis(&self) -> bool {
+        self.0.get(3)
     }
 
-    pub fn set_tempdis(&mut self, v: TempDis) {
-        self.0 = self.0.set(3, v.into());
+    pub fn set_tempdis(&mut self, v: bool) {
+        self.0 = self.0.set(3, v);
     }
 
-    pub fn get_cycle(&self) -> CycleMode {
-        CycleMode::from(self.0.get(5))
+    /// When this bit is set to 1 and SLEEP is disabled,
+    /// the MPU-60X0 will cycle between sleep mode and
+    /// waking up to take a single sample of data from
+    /// active sensors at a rate determined by LP_WAKE_CTRL (register 108).
+    pub fn get_cycle(&self) -> bool {
+        self.0.get(5)
     }
 
-    pub fn set_cycle(&mut self, v: CycleMode) {
-        self.0 = self.0.set(5, v.into());
+    pub fn set_cycle(&mut self, v: bool) {
+        self.0 = self.0.set(5, v);
     }
 
-    pub fn get_sleep(&self) -> SleepMode {
-        SleepMode::from(self.0.get(6))
+    /// When set to 1, this bit puts the MPU-60X0 into sleep mode.
+    pub fn get_sleep(&self) -> bool {
+        self.0.get(6)
     }
 
-    pub fn set_sleep(&mut self, v: SleepMode) {
-        self.0 = self.0.set(6, v.into());
+    pub fn set_sleep(&mut self, v: bool) {
+        self.0 = self.0.set(6, v);
     }
 
-    pub fn get_device_reset(&self) -> DeviceReset {
-        DeviceReset::from(self.0.get(7))
+    /// When set to 1, this bit resets all internal registers to their default values.
+    /// The bit automatically clears to 0 once the reset is done.
+    /// The default values for each register can be found in Section 3.
+    pub fn get_device_reset(&self) -> bool {
+        self.0.get(7)
     }
 
-    pub fn set_device_reset(&mut self, v: DeviceReset) {
-        self.0 = self.0.set(7, v.into());
+    pub fn set_device_reset(&mut self, v: bool) {
+        self.0 = self.0.set(7, v);
     }
 }
 
@@ -202,43 +211,60 @@ impl Register for UserCtrl {
 }
 
 impl UserCtrl {
-    pub fn get_sigcond_reset(&self) -> SigCondReset {
-        SigCondReset::from(self.0.get(0))
+    /// When set to 1, this bit resets the signal paths for all sensors
+    /// (gyroscopes, accelerometers, and temperature sensor).
+    /// This operation will also clear the sensor registers.
+    /// This bit automatically clears to 0 after the reset has been triggered.
+    /// When resetting only the signal path (and not the sensor registers),
+    /// please use Register 104, SIGNAL_PATH_RESET.
+    pub fn get_sigcond_reset(&self) -> bool {
+        self.0.get(0)
     }
 
-    pub fn set_sigcond_reset(&mut self, v: SigCondReset) {
-        self.0 = self.0.set(0, v.into());
+    pub fn set_sigcond_reset(&mut self, v: bool) {
+        self.0 = self.0.set(0, v);
     }
 
-    pub fn get_i2cmst_reset(&self) -> I2cMstRest {
-        I2cMstRest::from(self.0.get(1))
+    /// This bit resets the I2C Master when set to 1 while I2C_MST_EN equals 0.
+    /// This bit automatically clears to 0 after the reset has been triggered.
+    pub fn get_i2cmst_reset(&self) -> bool {
+        self.0.get(1)
     }
 
-    pub fn set_i2cmst_reset(&mut self, v: I2cMstRest) {
-        self.0 = self.0.set(1, v.into());
+    pub fn set_i2cmst_reset(&mut self, v: bool) {
+        self.0 = self.0.set(1, v);
     }
 
-    pub fn get_fifo_reset(&self) -> FifoReset {
-        FifoReset::from(self.0.get(2))
+    /// This bit resets the FIFO buffer when set to 1 while FIFO_EN equals 0.
+    /// This bit automatically clears to 0 after the reset has been triggered.
+    pub fn get_fifo_reset(&self) -> bool {
+        self.0.get(2)
     }
 
-    pub fn set_fifo_reset(&mut self, v: FifoReset) {
-        self.0 = self.0.set(2, v.into());
+    pub fn set_fifo_reset(&mut self, v: bool) {
+        self.0 = self.0.set(2, v);
     }
 
-    pub fn get_i2cmst_en(&self) -> I2cMstEn {
-        I2cMstEn::from(self.0.get(5))
+    /// When set to 1, this bit enables I2C Master Mode.
+    /// When this bit is cleared to 0, the auxiliary I2C bus lines
+    /// (AUX_DA and AUX_CL) are logically driven by the primary I2C bus (SDA and SCL).
+    pub fn get_i2cmst_en(&self) -> bool {
+        self.0.get(5)
     }
 
-    pub fn set_i2cmst_en(&mut self, v: I2cMstEn) {
-        self.0 = self.0.set(5, v.into());
+    pub fn set_i2cmst_en(&mut self, v: bool) {
+        self.0 = self.0.set(5, v);
     }
 
-    pub fn get_fifo_en(&self) -> FifoEn {
-        FifoEn::from(self.0.get(6))
+    /// When set to 1, this bit enables FIFO operations.
+    /// When this bit is cleared to 0, the FIFO buffer is disabled.
+    /// The FIFO buffer cannot be written to or read from while disabled.
+    /// The FIFO buffer’s state does not change unless the MPU-60X0 is power cycled.
+    pub fn get_fifo_en(&self) -> bool {
+        self.0.get(6)
     }
 
-    pub fn set_fifo_en(&mut self, v: FifoEn) {
+    pub fn set_fifo_en(&mut self, v: bool) {
         self.0 = self.0.set(6, v.into());
     }
 }
@@ -255,36 +281,44 @@ impl Register for IntEnable {
 }
 
 impl IntEnable {
-    pub fn get_datardy_en(&self) -> DataRdyEn {
-        DataRdyEn::from(self.0.get(0))
+    /// When set to 1, this bit enables the Data Ready interrupt,
+    /// which occurs each time a write operation to all of the sensor registers has been completed.
+    pub fn get_datardy_en(&self) -> bool {
+        self.0.get(0)
     }
 
-    pub fn set_datardy_en(&mut self, v: DataRdyEn) {
+    pub fn set_datardy_en(&mut self, v: bool) {
         self.0 = self.0.set(0, v.into());
     }
 
-    pub fn get_i2cmst_int_en(&self) -> I2cMstIntEn {
-        I2cMstIntEn::from(self.0.get(3))
+    /// When set to 1, this bit enables any of the I2C Master
+    /// interrupt sources to generate an interrupt.
+    pub fn get_i2cmst_int_en(&self) -> bool {
+        self.0.get(3)
     }
 
-    pub fn set_i2cmst_int_en(&mut self, v: I2cMstIntEn) {
+    pub fn set_i2cmst_int_en(&mut self, v: bool) {
         self.0 = self.0.set(3, v.into());
     }
 
-    pub fn get_fifo_oflow_en(&self) -> FifoOflowEn {
-        FifoOflowEn::from(self.0.get(4))
+    /// When set to 1, this bit enables a FIFO buffer overflow to generate an interrupt.
+    pub fn get_fifo_oflow_en(&self) -> bool {
+        self.0.get(4)
     }
 
-    pub fn set_fifo_oflow_en(&mut self, v: FifoOflowEn) {
-        self.0 = self.0.set(4, v.into());
+    pub fn set_fifo_oflow_en(&mut self, v: bool) {
+        self.0 = self.0.set(4, v);
     }
 
-    pub fn get_mot_en(&self) -> MotEn {
-        MotEn::from(self.0.get(6))
+    /// When set to 1, this bit enables Motion detection to generate an interrupt.
+    pub fn get_mot_en(&self) -> bool {
+        self.0.get(6)
     }
 
-    pub fn set_mot_en(&mut self, v: MotEn) {
-        self.0 = self.0.set(6, v.into());
+    pub fn set_mot_en(&mut self, v: bool) {
+        self.0 = self.0.set(6, v);
+    }
+}
     }
 }
 

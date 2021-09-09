@@ -96,10 +96,10 @@ fn pwr_mgmt1_from_u8() {
                     for dreset in [true, false] {
                         let mut o = PwrMgmt1(0);
                         o.set_clksel(ClockSel::from_u8(clksel).unwrap());
-                        o.set_tempdis(tempdis.into());
-                        o.set_cycle(cycle.into());
-                        o.set_sleep(sleep.into());
-                        o.set_device_reset(dreset.into());
+                        o.set_tempdis(tempdis);
+                        o.set_cycle(cycle);
+                        o.set_sleep(sleep);
+                        o.set_device_reset(dreset);
 
                         let c: u8 = o.into();
                         assert_eq!(clksel, c.get_with_mask(0b111, 0));
@@ -110,10 +110,10 @@ fn pwr_mgmt1_from_u8() {
 
                         let o = PwrMgmt1::from(c);
                         assert_eq!(clksel, o.get_clksel() as u8);
-                        assert_eq!(tempdis, o.get_tempdis().into());
-                        assert_eq!(cycle, o.get_cycle().into());
-                        assert_eq!(sleep, o.get_sleep().into());
-                        assert_eq!(dreset, o.get_device_reset().into());
+                        assert_eq!(tempdis, o.get_tempdis());
+                        assert_eq!(cycle, o.get_cycle());
+                        assert_eq!(sleep, o.get_sleep());
+                        assert_eq!(dreset, o.get_device_reset());
                     }
                 }
             }
@@ -129,11 +129,11 @@ fn user_ctrl_from_u8() {
                 for i2cmst_en in [true, false] {
                     for fifo_en in [true, false] {
                         let mut o = UserCtrl(0);
-                        o.set_sigcond_reset(sigcond_reset.into());
-                        o.set_i2cmst_reset(i2cmst_reset.into());
-                        o.set_fifo_reset(fifo_reset.into());
-                        o.set_i2cmst_en(i2cmst_en.into());
-                        o.set_fifo_en(fifo_en.into());
+                        o.set_sigcond_reset(sigcond_reset);
+                        o.set_i2cmst_reset(i2cmst_reset);
+                        o.set_fifo_reset(fifo_reset);
+                        o.set_i2cmst_en(i2cmst_en);
+                        o.set_fifo_en(fifo_en);
 
                         let c: u8 = o.into();
                         assert_eq!(sigcond_reset, c.get(0));
@@ -143,11 +143,11 @@ fn user_ctrl_from_u8() {
                         assert_eq!(fifo_en, c.get(6));
 
                         let o = UserCtrl::from(c);
-                        assert_eq!(sigcond_reset, o.get_sigcond_reset().into());
-                        assert_eq!(i2cmst_reset, o.get_i2cmst_reset().into());
-                        assert_eq!(fifo_reset, o.get_fifo_reset().into());
-                        assert_eq!(i2cmst_en, o.get_i2cmst_en().into());
-                        assert_eq!(fifo_en, o.get_fifo_en().into());
+                        assert_eq!(sigcond_reset, o.get_sigcond_reset());
+                        assert_eq!(i2cmst_reset, o.get_i2cmst_reset());
+                        assert_eq!(fifo_reset, o.get_fifo_reset());
+                        assert_eq!(i2cmst_en, o.get_i2cmst_en());
+                        assert_eq!(fifo_en, o.get_fifo_en());
                     }
                 }
             }
@@ -162,10 +162,10 @@ fn int_enable_from_u8() {
             for fifo_oflow_en in [true, false] {
                 for mot_en in [true, false] {
                     let mut o = IntEnable(0);
-                    o.set_datardy_en(datardy_en.into());
-                    o.set_i2cmst_int_en(i2cmst_int_en.into());
-                    o.set_fifo_oflow_en(fifo_oflow_en.into());
-                    o.set_mot_en(mot_en.into());
+                    o.set_datardy_en(datardy_en);
+                    o.set_i2cmst_int_en(i2cmst_int_en);
+                    o.set_fifo_oflow_en(fifo_oflow_en);
+                    o.set_mot_en(mot_en);
 
                     let c: u8 = o.into();
                     assert_eq!(datardy_en, c.get(0));
@@ -174,10 +174,10 @@ fn int_enable_from_u8() {
                     assert_eq!(mot_en, c.get(6));
 
                     let o = IntEnable::from(c);
-                    assert_eq!(datardy_en, o.get_datardy_en().into());
-                    assert_eq!(i2cmst_int_en, o.get_i2cmst_int_en().into());
-                    assert_eq!(fifo_oflow_en, o.get_fifo_oflow_en().into());
-                    assert_eq!(mot_en, o.get_mot_en().into());
+                    assert_eq!(datardy_en, o.get_datardy_en());
+                    assert_eq!(i2cmst_int_en, o.get_i2cmst_int_en());
+                    assert_eq!(fifo_oflow_en, o.get_fifo_oflow_en());
+                    assert_eq!(mot_en, o.get_mot_en());
                 }
             }
         }

@@ -3,7 +3,6 @@ mod tests;
 
 use crate::util::SingleByte;
 use core::fmt::Debug;
-use derive_more::{From, Into};
 use embedded_time::{duration::*, rate::*};
 use num_derive::FromPrimitive;
 
@@ -181,74 +180,3 @@ pub enum ClockSel {
     /// Stops the clock and keeps the timing generator in reset
     V7,
 }
-
-/// When set to 1, this bit disables the temperature sensor.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct TempDis(bool);
-
-/// When this bit is set to 1 and SLEEP is disabled,
-/// the MPU-60X0 will cycle between sleep mode and
-/// waking up to take a single sample of data from
-/// active sensors at a rate determined by LP_WAKE_CTRL (register 108).
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct CycleMode(bool);
-
-/// When set to 1, this bit puts the MPU-60X0 into sleep mode.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct SleepMode(bool);
-
-/// When set to 1, this bit resets all internal registers to their default values.
-/// The bit automatically clears to 0 once the reset is done.
-/// The default values for each register can be found in Section 3.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct DeviceReset(bool);
-
-/// When set to 1, this bit resets the signal paths for all sensors
-/// (gyroscopes, accelerometers, and temperature sensor).
-/// This operation will also clear the sensor registers.
-/// This bit automatically clears to 0 after the reset has been triggered.
-/// When resetting only the signal path (and not the sensor registers),
-/// please use Register 104, SIGNAL_PATH_RESET.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct SigCondReset(bool);
-
-/// This bit resets the I2C Master when set to 1 while I2C_MST_EN equals 0.
-/// This bit automatically clears to 0 after the reset has been triggered.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct I2cMstRest(bool);
-
-/// This bit resets the FIFO buffer when set to 1 while FIFO_EN equals 0.
-/// This bit automatically clears to 0 after the reset has been triggered.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct FifoReset(bool);
-
-/// When set to 1, this bit enables I2C Master Mode.
-/// When this bit is cleared to 0, the auxiliary I2C bus lines
-/// (AUX_DA and AUX_CL) are logically driven by the primary I2C bus (SDA and SCL).
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct I2cMstEn(bool);
-
-/// When set to 1, this bit enables FIFO operations.
-/// When this bit is cleared to 0, the FIFO buffer is disabled.
-/// The FIFO buffer cannot be written to or read from while disabled.
-/// The FIFO buffer’s state does not change unless the MPU-60X0 is power cycled.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct FifoEn(bool);
-
-/// When set to 1, this bit enables the Data Ready interrupt,
-/// which occurs each time a write operation to all of the sensor registers has been completed.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct DataRdyEn(bool);
-
-/// When set to 1, this bit enables any of the I2C Master
-/// interrupt sources to generate an interrupt.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct I2cMstIntEn(bool);
-
-/// When set to 1, this bit enables a FIFO buffer overflow to generate an interrupt.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct FifoOflowEn(bool);
-
-/// When set to 1, this bit enables Motion detection to generate an interrupt.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct MotEn(bool);
