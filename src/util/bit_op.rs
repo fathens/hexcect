@@ -14,8 +14,11 @@ pub trait SingleByte {
     }
 
     fn set(&self, i: usize, b: bool) -> u8 {
-        let v = if b { 1 } else { 0 };
-        self.value() | (v << i)
+        if b {
+            self.value() | (1 << i)
+        } else {
+            self.value() & !(1 << i)
+        }
     }
 
     /// mask の分だけのビット数を offset の位置から取り出す。
@@ -57,6 +60,42 @@ impl SingleByte for u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn singlebyte_get_each() {
+        assert_eq!(0b_1011_0101.get(0), true);
+        assert_eq!(0b_1011_0101.get(1), false);
+        assert_eq!(0b_1011_0101.get(2), true);
+        assert_eq!(0b_1011_0101.get(3), false);
+        assert_eq!(0b_1011_0101.get(4), true);
+        assert_eq!(0b_1011_0101.get(5), true);
+        assert_eq!(0b_1011_0101.get(6), false);
+        assert_eq!(0b_1011_0101.get(7), true);
+    }
+
+    #[test]
+    fn singlebyte_set_true() {
+        assert_eq!(0b_1011_0101.set(0, true), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(1, true), 0b_1011_0111);
+        assert_eq!(0b_1011_0101.set(2, true), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(3, true), 0b_1011_1101);
+        assert_eq!(0b_1011_0101.set(4, true), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(5, true), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(6, true), 0b_1111_0101);
+        assert_eq!(0b_1011_0101.set(7, true), 0b_1011_0101);
+    }
+
+    #[test]
+    fn singlebyte_set_false() {
+        assert_eq!(0b_1011_0101.set(0, false), 0b_1011_0100);
+        assert_eq!(0b_1011_0101.set(1, false), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(2, false), 0b_1011_0001);
+        assert_eq!(0b_1011_0101.set(3, false), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(4, false), 0b_1010_0101);
+        assert_eq!(0b_1011_0101.set(5, false), 0b_1001_0101);
+        assert_eq!(0b_1011_0101.set(6, false), 0b_1011_0101);
+        assert_eq!(0b_1011_0101.set(7, false), 0b_0011_0101);
+    }
 
     #[test]
     fn singlebyte_get_with_mask() {

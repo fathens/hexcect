@@ -265,7 +265,7 @@ impl UserCtrl {
     }
 
     pub fn set_fifo_en(&mut self, v: bool) {
-        self.0 = self.0.set(6, v.into());
+        self.0 = self.0.set(6, v);
     }
 }
 
@@ -288,7 +288,7 @@ impl IntEnable {
     }
 
     pub fn set_datardy_en(&mut self, v: bool) {
-        self.0 = self.0.set(0, v.into());
+        self.0 = self.0.set(0, v);
     }
 
     /// When set to 1, this bit enables any of the I2C Master
@@ -298,7 +298,7 @@ impl IntEnable {
     }
 
     pub fn set_i2cmst_int_en(&mut self, v: bool) {
-        self.0 = self.0.set(3, v.into());
+        self.0 = self.0.set(3, v);
     }
 
     /// When set to 1, this bit enables a FIFO buffer overflow to generate an interrupt.
