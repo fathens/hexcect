@@ -6,6 +6,7 @@ mod test_addresses;
 mod tests;
 
 use super::raw_data::*;
+use crate::hardware::i2c::register_io::*;
 use crate::util::SingleByte;
 pub use attributes::*;
 
@@ -13,13 +14,6 @@ use core::fmt::Debug;
 use derive_more::{From, Into};
 use num_traits::FromPrimitive;
 use std::convert::TryInto;
-
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
-pub struct RegAddr(u8);
-
-pub trait Register: From<u8> + Debug + Copy + Eq {
-    const ADDR: RegAddr;
-}
 
 /// This register configures the external Frame Synchronization (FSYNC) pin sampling and
 /// the Digital Low Pass Filter (DLPF) setting for both the gyroscopes and accelerometers.
