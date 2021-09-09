@@ -9,7 +9,7 @@ use crossterm::{cursor::MoveUp, execute, style::Print};
 
 fn main() {
     let dev = connect(1).unwrap();
-    let mut mpu = MPU6050::new(dev, Address::LOW).unwrap();
+    let mut mpu = MPU6050::new(dev, Address::default()).unwrap();
     mpu.normal_setup(&mut Delay).unwrap();
 
     loop {

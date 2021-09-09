@@ -6,25 +6,22 @@ use error::Error;
 use raw_data::*;
 use register::*;
 
+use derive_more::{From, Into};
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use std::result::Result;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Address {
-    LOW,
-    HIGH,
-    Custom(u8),
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct Address(u8);
+
+impl Address {
+    pub const LOW: Address = Address(0x68);
+    pub const HIGH: Address = Address(0x69);
 }
 
-impl From<Address> for u8 {
-    fn from(a: Address) -> u8 {
-        match a {
-            Address::LOW => 0x68,
-            Address::HIGH => 0x69,
-            Address::Custom(v) => v,
-        }
+impl Default for Address {
+    fn default() -> Self {
+        Address::LOW
     }
 }
 
@@ -126,7 +123,7 @@ where
         self.write_register(value)
     }
 
-    pub fn set_sample_rate_divider(&mut self, v: SampleRateDivider)-> Result<(), Error<T>> {
+    pub fn set_sample_rate_divider(&mut self, v: SampleRateDivider) -> Result<(), Error<T>> {
         self.write_register(v)
     }
 

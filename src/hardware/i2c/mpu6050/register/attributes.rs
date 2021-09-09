@@ -38,40 +38,40 @@ impl FlagsXYZ {
 #[derive(Debug, FromPrimitive, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ClockSel {
-    Internal8MHz,
-    Xgyro,
-    Ygyro,
-    Zgyro,
-    External32768Hz,
-    External19200kHz,
-    Reserved,
-    Stop,
+    Internal8MHz = 0,
+    Xgyro = 1,
+    Ygyro = 2,
+    Zgyro = 3,
+    External32768Hz = 4,
+    External19200kHz = 5,
+    Reserved = 6,
+    Stop = 7,
 }
 
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[repr(u8)]
 pub enum FrameSync {
-    Disabled,
-    TempOutL,
-    GyroXoutL,
-    GyroYoutL,
-    GyroZoutL,
-    AccelXoutL,
-    AccelYoutL,
-    AccelZoutL,
+    Disabled = 0,
+    TempOutL = 1,
+    GyroXoutL = 2,
+    GyroYoutL = 3,
+    GyroZoutL = 4,
+    AccelXoutL = 5,
+    AccelYoutL = 6,
+    AccelZoutL = 7,
 }
 
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[repr(u8)]
 pub enum DigitalLowPassFilterCfg {
-    V0,
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
+    V0 = 0,
+    V1 = 1,
+    V2 = 2,
+    V3 = 3,
+    V4 = 4,
+    V5 = 5,
+    V6 = 6,
+    V7 = 7,
 }
 
 #[derive(Debug, PartialEq, Eq)]
