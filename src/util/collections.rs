@@ -4,9 +4,27 @@ use std::hash::Hash;
 pub trait DivideList {
     type T: ?Sized;
 
+    /// コレクションの各アイテムをその属性別に分類する。
+    ///
+    /// # Examples
+    /// ```
+    /// use hexcect::util::DivideList;
+    ///
+    /// let list = vec!["A", "XA", "B", "XB"];
+    /// let result = list.divide_by(|s| s.len());
+    /// assert_eq!(result.len(), 2);
+    /// assert_eq!(result[&1], vec!["A", "B"]);
+    /// assert_eq!(result[&2], vec!["XA", "XB"]);
+    ///
+    /// let array = ["A", "XA", "B", "XB"];
+    /// let result = array.divide_by(|s| s.len());
+    /// assert_eq!(result.len(), 2);
+    /// assert_eq!(result[&1], vec![&"A", &"B"]);
+    /// assert_eq!(result[&2], vec![&"XA", &"XB"]);
+    /// ```
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&Self::T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&Self::T) -> K;
 }
 
@@ -15,20 +33,12 @@ impl<T> DivideList for [T] {
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&T) -> K,
     {
         let mut result: HashMap<K, Vec<&T>> = HashMap::new();
         for t in self {
-            let c = by(t);
-            let values = match result.get_mut(&c) {
-                Some(v) => v,
-                None => {
-                    result.insert(c, Vec::new());
-                    result.get_mut(&c).expect("Must be here")
-                }
-            };
-            values.push(t);
+            result.entry(by(t)).or_insert_with(Vec::new).push(t);
         }
         result
     }
@@ -39,20 +49,12 @@ impl<T: ?Sized> DivideList for Vec<&T> {
 
     fn divide_by<K, F>(&self, by: F) -> HashMap<K, Vec<&T>>
     where
-        K: Copy + Eq + Hash,
+        K: Eq + Hash,
         F: Fn(&T) -> K,
     {
         let mut result: HashMap<K, Vec<&T>> = HashMap::new();
         for t in self {
-            let c = by(t);
-            let values = match result.get_mut(&c) {
-                Some(v) => v,
-                None => {
-                    result.insert(c, Vec::new());
-                    result.get_mut(&c).expect("Must be here")
-                }
-            };
-            values.push(t);
+            result.entry(by(t)).or_insert_with(Vec::new).push(t);
         }
         result
     }
