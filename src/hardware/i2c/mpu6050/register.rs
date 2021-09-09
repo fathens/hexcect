@@ -319,7 +319,87 @@ impl IntEnable {
         self.0 = self.0.set(6, v);
     }
 }
+
+/// This register determines which sensor measurements are loaded into the FIFO buffer.
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct FifoEnable(u8);
+
+impl Register for FifoEnable {
+    const ADDR: RegAddr = RegAddr(0x23);
+}
+
+impl FifoEnable {
+    pub fn get_slv0(&self) -> bool {
+        self.0.get(0)
     }
+
+    pub fn set_slv0(&mut self, v: bool) {
+        self.0 = self.0.set(0, v);
+    }
+
+    pub fn get_slv1(&self) -> bool {
+        self.0.get(1)
+    }
+
+    pub fn set_slv1(&mut self, v: bool) {
+        self.0 = self.0.set(1, v);
+    }
+
+    pub fn get_slv2(&self) -> bool {
+        self.0.get(2)
+    }
+
+    pub fn set_slv2(&mut self, v: bool) {
+        self.0 = self.0.set(2, v);
+    }
+
+    pub fn get_accel(&self) -> bool {
+        self.0.get(3)
+    }
+
+    pub fn set_accel(&mut self, v: bool) {
+        self.0 = self.0.set(3, v);
+    }
+
+    pub fn get_zg(&self) -> bool {
+        self.0.get(4)
+    }
+
+    pub fn set_zg(&mut self, v: bool) {
+        self.0 = self.0.set(4, v);
+    }
+
+    pub fn get_yg(&self) -> bool {
+        self.0.get(5)
+    }
+
+    pub fn set_yg(&mut self, v: bool) {
+        self.0 = self.0.set(5, v);
+    }
+
+    pub fn get_xg(&self) -> bool {
+        self.0.get(6)
+    }
+
+    pub fn set_xg(&mut self, v: bool) {
+        self.0 = self.0.set(6, v);
+    }
+
+    pub fn get_temp(&self) -> bool {
+        self.0.get(7)
+    }
+
+    pub fn set_temp(&mut self, v: bool) {
+        self.0 = self.0.set(7, v);
+    }
+}
+
+/// This register is used to read and write data from the FIFO buffer.
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct FifoData(u8);
+
+impl Register for FifoData {
+    const ADDR: RegAddr = RegAddr(0x74);
 }
 
 // ----------------------------------------------------------------
@@ -327,6 +407,16 @@ impl IntEnable {
 
 pub trait RegisterRange {
     const ADDR: RegAddr;
+}
+
+impl RegisterRange for FifoCount {
+    const ADDR: RegAddr = RegAddr(0x72);
+}
+
+impl From<[u8; 2]> for FifoCount {
+    fn from(buf: [u8; 2]) -> Self {
+        Self::from(u16::from_be_bytes(buf))
+    }
 }
 
 impl RegisterRange for AccelData {
@@ -346,7 +436,7 @@ impl RegisterRange for Temperature {
 
 impl From<[u8; 2]> for Temperature {
     fn from(data: [u8; 2]) -> Self {
-        Self(i16::from_be_bytes(data))
+        Self::from(i16::from_be_bytes(data))
     }
 }
 
@@ -362,7 +452,7 @@ impl From<[u8; 6]> for GyroData {
 }
 
 impl From<[u8; 14]> for RawData {
-    fn from(buf: [u8; 14]) -> RawData {
+    fn from(buf: [u8; 14]) -> Self {
         let array_accel: [u8; 6] = buf[..6].try_into().expect("Accel data must be here");
         let array_temp: [u8; 2] = buf[6..8].try_into().expect("Temperature data must be here");
         let array_gyro: [u8; 6] = buf[8..].try_into().expect("Gyro data must be here");

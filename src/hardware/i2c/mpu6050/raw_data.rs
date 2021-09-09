@@ -1,4 +1,5 @@
 use crate::model::sensor::{AccInfo, GyroInfo};
+use derive_more::{From, Into};
 use num_derive::FromPrimitive;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -8,8 +9,8 @@ pub struct RawData {
     pub accel: AccelData,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Temperature(pub i16);
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct Temperature(i16);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GyroData {
@@ -68,6 +69,9 @@ impl AccelFullScale {
         s as f32
     }
 }
+
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+pub struct FifoCount(u16);
 
 #[cfg(test)]
 mod tests {

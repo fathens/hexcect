@@ -185,10 +185,44 @@ fn int_enable_from_u8() {
 }
 
 #[test]
+fn fifo_enable_from_u8() {
+    for c in 0..=255 {
+        let o = FifoEnable::from(c);
+        assert_eq!(c.get(0), o.get_slv0());
+        assert_eq!(c.get(1), o.get_slv1());
+        assert_eq!(c.get(2), o.get_slv2());
+        assert_eq!(c.get(3), o.get_accel());
+        assert_eq!(c.get(4), o.get_zg());
+        assert_eq!(c.get(5), o.get_yg());
+        assert_eq!(c.get(6), o.get_xg());
+        assert_eq!(c.get(7), o.get_temp());
+
+        let mut a = FifoEnable::from(0);
+        a.set_slv0(o.get_slv0());
+        a.set_slv1(o.get_slv1());
+        a.set_slv2(o.get_slv2());
+        a.set_accel(o.get_accel());
+        a.set_zg(o.get_zg());
+        a.set_yg(o.get_yg());
+        a.set_xg(o.get_xg());
+        a.set_temp(o.get_temp());
+
+        assert_eq!(a, o);
+    }
+}
+
+#[test]
+fn fifo_count_from_buf() {
+    let buf = [0x12, 0x34];
+    let fc = FifoCount::from(buf);
+    assert_eq!(0x1234_u16, fc.into());
+}
+
+#[test]
 fn raw_data_from_buf() {
     let buf = [0, 1, 0, 2, 0, 3, 1, 0, 1, 1, 1, 2, 1, 3];
     let raw = RawData::from(buf);
-    assert_eq!(raw.temp.0, 0x100);
+    assert_eq!(0x100_i16, raw.temp.into());
     assert_eq!(
         raw.accel,
         AccelData {
