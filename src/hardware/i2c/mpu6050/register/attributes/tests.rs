@@ -20,6 +20,22 @@ fn flags_xyz_from_booleans() {
 }
 
 #[test]
+fn clksel_as_u8() {
+    assert_eq!(ClockSel::Internal8MHz as u8, 0);
+    assert_eq!(ClockSel::Xgyro as u8, 1);
+    assert_eq!(ClockSel::Ygyro as u8, 2);
+    assert_eq!(ClockSel::Zgyro as u8, 3);
+    assert_eq!(ClockSel::External32768Hz as u8, 4);
+    assert_eq!(ClockSel::External19200kHz as u8, 5);
+    assert_eq!(ClockSel::Reserved as u8, 6);
+    assert_eq!(ClockSel::Stop as u8, 7);
+    for i in 0..8 {
+        let a = ClockSel::from_u8(i).expect("Must be !");
+        assert_eq!(i, a as u8);
+    }
+}
+
+#[test]
 fn frame_sync_as_u8() {
     assert_eq!(FrameSync::Disabled as u8, 0);
     assert_eq!(FrameSync::TempOutL as u8, 1);

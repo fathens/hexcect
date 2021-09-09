@@ -31,6 +31,23 @@ impl FlagsXYZ {
     }
 }
 
+/// Upon power up, the MPU-60X0 clock source defaults to the internal oscillator.
+/// However, it is highly recommended that the device be configured to use one of the gyroscopes
+/// (or an external clock source) as the clock reference for improved stability.
+/// The clock source can be selected according to the following table.
+#[derive(Debug, FromPrimitive, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ClockSel {
+    Internal8MHz,
+    Xgyro,
+    Ygyro,
+    Zgyro,
+    External32768Hz,
+    External19200kHz,
+    Reserved,
+    Stop,
+}
+
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[repr(u8)]
 pub enum FrameSync {
@@ -154,29 +171,4 @@ impl DigitalLowPassFilterCfg {
             },
         }
     }
-}
-
-/// Upon power up, the MPU-60X0 clock source defaults to the internal oscillator.
-/// However, it is highly recommended that the device be configured to use one of the gyroscopes
-/// (or an external clock source) as the clock reference for improved stability.
-/// The clock source can be selected according to the following table.
-#[derive(Debug, FromPrimitive, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum ClockSel {
-    /// Internal 8MHz oscillator
-    V0,
-    /// PLL with X axis gyroscope reference
-    V1,
-    /// PLL with Y axis gyroscope reference
-    V2,
-    /// PLL with Z axis gyroscope reference
-    V3,
-    /// PLL with external 32.768kHz reference
-    V4,
-    /// PLL with external 19.2MHz reference
-    V5,
-    /// Reserved
-    V6,
-    /// Stops the clock and keeps the timing generator in reset
-    V7,
 }
