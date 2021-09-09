@@ -2,6 +2,8 @@ mod attributes;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod test_addresses;
 
 use super::raw_data::*;
 use crate::util::SingleByte;
