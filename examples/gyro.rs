@@ -13,22 +13,19 @@ fn main() {
     run_loop().unwrap();
 }
 
-fn run_mpu6050() -> Result<()> {
+fn run_loop() -> Result<()> {
     let dev = connect(1)?;
     let mut mpu = MPU6050::new(I2cWithAddr::new(dev, ADDRESS_LOW)).unwrap();
     mpu.normal_setup(&mut Delay).unwrap();
 
-    let info = mpu.get_infos().unwrap();
-    execute!(
-        stdout(),
-        style::Print(format!("{:?}\n", info)),
-        cursor::MoveUp(1),
-    )
-}
-
-fn run_loop() -> Result<()> {
     ctrlc::set_handler(|| {
-        execute!(stdout(), cursor::Show).unwrap();
+        execute!(
+            stdout(),
+            terminal::Clear(terminal::ClearType::All),
+            cursor::Show,
+            cursor::MoveTo(0, 0),
+        )
+        .unwrap();
         std::process::exit(0);
     })
     .unwrap();
@@ -37,19 +34,55 @@ fn run_loop() -> Result<()> {
     execute!(
         stdout(),
         cursor::Hide,
-        terminal::Clear(terminal::ClearType::All)
+        terminal::Clear(terminal::ClearType::All),
     )?;
 
-    let mut line_a = HLine::new('|', 'X', cols, 3);
+    let mut accel = ViewXYZ::new("Accel", cols, 0)?;
+    let mut gyro = ViewXYZ::new("Gyro", cols, 5)?;
     loop {
-        for i in (i16::MIN..i16::MAX).step_by(100) {
-            line_a.update(i)?;
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        for i in (i16::MIN..i16::MAX).step_by(100).rev() {
-            line_a.update(i)?;
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
+        let info = mpu.get_infos().unwrap();
+        accel.update(info.accel.x, info.accel.y, info.accel.z)?;
+        gyro.update(info.gyro.x, info.gyro.y, info.gyro.z)?;
+    }
+}
+
+struct ViewXYZ<'a> {
+    title: &'a str,
+    width: u16,
+    pos: u16,
+    x: HLine,
+    y: HLine,
+    z: HLine,
+}
+
+impl<'a> ViewXYZ<'a> {
+    pub fn new(title: &'a str, width: u16, pos: u16) -> Result<Self> {
+        let o = Self {
+            title,
+            width,
+            pos,
+            x: HLine::new('|', 'X', width, pos + 1),
+            y: HLine::new('|', 'Y', width, pos + 2),
+            z: HLine::new('|', 'Z', width, pos + 3),
+        };
+        o.draw_title()?;
+        Ok(o)
+    }
+
+    pub fn draw_title(&self) -> Result<()> {
+        let x = (self.width as usize - self.title.len()) / 2;
+        execute!(
+            stdout(),
+            cursor::MoveTo(x as u16, self.pos),
+            style::Print(self.title)
+        )
+    }
+
+    pub fn update(&mut self, x: i16, y: i16, z: i16) -> Result<()> {
+        self.x.update(x)?;
+        self.y.update(y)?;
+        self.z.update(z)?;
+        Ok(())
     }
 }
 
