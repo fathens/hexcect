@@ -5,6 +5,10 @@ pub struct GyroInfo {
 }
 
 impl GyroInfo {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+
     pub fn x(&self) -> f32 {
         self.x
     }
@@ -18,13 +22,17 @@ impl GyroInfo {
     }
 }
 
-pub struct AccInfo {
+pub struct AccelInfo {
     x: f32,
     y: f32,
     z: f32,
 }
 
-impl AccInfo {
+impl AccelInfo {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+
     pub fn x(&self) -> f32 {
         self.x
     }
