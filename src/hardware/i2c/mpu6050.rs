@@ -1,5 +1,5 @@
 pub mod error;
-mod raw_data;
+pub mod raw_data;
 mod register;
 
 use crate::hardware::i2c::register_io::*;

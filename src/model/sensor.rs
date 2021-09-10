@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub struct GyroInfo {
     x: f32,
     y: f32,
@@ -22,6 +23,7 @@ impl GyroInfo {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AccelInfo {
     x: f32,
     y: f32,
