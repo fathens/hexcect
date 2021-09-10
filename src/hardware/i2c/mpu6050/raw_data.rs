@@ -2,7 +2,7 @@ use crate::model::sensor::{AccelInfo, GyroInfo};
 use derive_more::{From, Into};
 use num_derive::FromPrimitive;
 
-const RESOLUSION: f32 = 65500.0;
+const RESOLUTION: f32 = 65500.0;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RawData {
@@ -23,7 +23,7 @@ pub struct GyroData {
 
 impl GyroData {
     pub fn scale(&self, fs: GyroFullScale) -> GyroInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUSION;
+        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
         GyroInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
     }
 }
@@ -53,7 +53,7 @@ pub struct AccelData {
 
 impl AccelData {
     pub fn scale(&self, fs: AccelFullScale) -> AccelInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUSION;
+        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
         AccelInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
     }
 }
