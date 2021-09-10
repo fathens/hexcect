@@ -34,9 +34,7 @@ impl PCA9685 {
         (PULSE_BASE * rate) as u16
     }
 
-    pub fn new(bus: u8, addr: u8) -> Result<PCA9685, PwmError> {
-        let path = format!("/dev/i2c-{}", bus);
-        let dev = I2cdev::new(&path).map_err(Error::I2C)?;
+    pub fn new(dev: I2cdev, addr: u8) -> Result<PCA9685, PwmError> {
         let address = Address::from(addr);
         Pca9685::new(dev, address).map(|inner| PCA9685 {
             inner,
