@@ -214,14 +214,14 @@ fn fifo_enable_from_u8() {
 #[test]
 fn fifo_count_from_buf() {
     let buf = [0x12, 0x34];
-    let fc = FifoCount::from(buf);
+    let fc = FifoCount::from(&buf);
     assert_eq!(0x1234_u16, fc.into());
 }
 
 #[test]
 fn raw_data_from_buf() {
     let buf = [0, 1, 0, 2, 0, 3, 1, 0, 1, 1, 1, 2, 1, 3];
-    let raw = RawData::from(buf);
+    let raw = RawData::from(&buf);
     assert_eq!(0x100_i16, raw.temp.into());
     assert_eq!(
         raw.accel,

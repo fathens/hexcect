@@ -10,8 +10,8 @@ use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use std::result::Result;
 
-pub const ADDRESS_LOW: Address = Address(0x68);
-pub const ADDRESS_HIGH: Address = Address(0x69);
+pub const ADDRESS_LOW: I2cAddr = I2cAddr(0x68);
+pub const ADDRESS_HIGH: I2cAddr = I2cAddr(0x69);
 
 pub struct MPU6050<T> {
     dev: I2cWithAddr<T>,
@@ -100,6 +100,6 @@ where
     pub fn get_infos(&mut self) -> Result<RawData, Error<T>> {
         let mut buf = [0; 14];
         self.dev.read_bytes(AccelData::ADDR, &mut buf)?;
-        Ok(RawData::from(buf))
+        Ok(RawData::from(&buf))
     }
 }

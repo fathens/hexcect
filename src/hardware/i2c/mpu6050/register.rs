@@ -17,7 +17,7 @@ use std::convert::TryInto;
 
 /// This register configures the external Frame Synchronization (FSYNC) pin sampling and
 /// the Digital Low Pass Filter (DLPF) setting for both the gyroscopes and accelerometers.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Configure(u8);
 
 impl Register for Configure {
@@ -46,7 +46,7 @@ impl Configure {
 
 /// This register is used to trigger gyroscope self-test and
 /// configure the gyroscopes’ full scale range.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GyroConfig(u8);
 
 impl Register for GyroConfig {
@@ -75,7 +75,7 @@ impl GyroConfig {
 /// This register is used to trigger accelerometer self test and
 /// configure the accelerometer full scale range.
 /// This register also configures the Digital High Pass Filter (DHPF).
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AccelConfig(u8);
 
 impl Register for AccelConfig {
@@ -104,7 +104,7 @@ impl AccelConfig {
 /// This register allows the user to configure the power mode and
 /// clock source. It also provides a bit for resetting the entire device,
 /// and a bit for disabling the temperature sensor.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PwrMgmt1(u8);
 
 impl Register for PwrMgmt1 {
@@ -178,7 +178,7 @@ impl PwrMgmt1 {
 /// the same accelerometer sample may be output to the FIFO, DMP, and sensor registers more than once.
 /// For a diagram of the gyroscope and accelerometer signal paths,
 /// see Section 8 of the MPU6000/MPU-6050 Product Specification document.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampleRateDivider(u8);
 
 impl Register for SampleRateDivider {
@@ -199,7 +199,7 @@ impl SampleRateDivider {
 /// I2C Master Mode, and primary I2C interface.
 /// The FIFO buffer, I2C Master, sensor signal paths and sensor registers
 /// can also be reset using this register.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserCtrl(u8);
 
 impl Register for UserCtrl {
@@ -269,7 +269,7 @@ impl UserCtrl {
 /// For information regarding the interrupt status for each interrupt generation source,
 /// please refer to Register 58.
 /// Further information regarding I2C Master interrupt generation can be found in Register 54.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IntEnable(u8);
 
 impl Register for IntEnable {
@@ -317,7 +317,7 @@ impl IntEnable {
 }
 
 /// This register determines which sensor measurements are loaded into the FIFO buffer.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FifoEnable(u8);
 
 impl Register for FifoEnable {
@@ -391,7 +391,7 @@ impl FifoEnable {
 }
 
 /// This register is used to read and write data from the FIFO buffer.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FifoData(u8);
 
 impl Register for FifoData {
@@ -409,9 +409,9 @@ impl RegisterRange for FifoCount {
     const ADDR: RegAddr = RegAddr(0x72);
 }
 
-impl From<[u8; 2]> for FifoCount {
-    fn from(buf: [u8; 2]) -> Self {
-        Self::from(u16::from_be_bytes(buf))
+impl From<&[u8; 2]> for FifoCount {
+    fn from(buf: &[u8; 2]) -> Self {
+        Self::from(u16::from_be_bytes(*buf))
     }
 }
 
@@ -419,8 +419,8 @@ impl RegisterRange for AccelData {
     const ADDR: RegAddr = RegAddr(0x3b);
 }
 
-impl From<[u8; 6]> for AccelData {
-    fn from(data: [u8; 6]) -> Self {
+impl From<&[u8; 6]> for AccelData {
+    fn from(data: &[u8; 6]) -> Self {
         let (x, y, z) = take2x3(data);
         Self { x, y, z }
     }
@@ -430,9 +430,9 @@ impl RegisterRange for Temperature {
     const ADDR: RegAddr = RegAddr(0x41);
 }
 
-impl From<[u8; 2]> for Temperature {
-    fn from(data: [u8; 2]) -> Self {
-        Self::from(i16::from_be_bytes(data))
+impl From<&[u8; 2]> for Temperature {
+    fn from(data: &[u8; 2]) -> Self {
+        Self::from(i16::from_be_bytes(*data))
     }
 }
 
@@ -440,18 +440,18 @@ impl RegisterRange for GyroData {
     const ADDR: RegAddr = RegAddr(0x43);
 }
 
-impl From<[u8; 6]> for GyroData {
-    fn from(data: [u8; 6]) -> Self {
+impl From<&[u8; 6]> for GyroData {
+    fn from(data: &[u8; 6]) -> Self {
         let (x, y, z) = take2x3(data);
         Self { x, y, z }
     }
 }
 
-impl From<[u8; 14]> for RawData {
-    fn from(buf: [u8; 14]) -> Self {
-        let array_accel: [u8; 6] = buf[..6].try_into().expect("Accel data must be here");
-        let array_temp: [u8; 2] = buf[6..8].try_into().expect("Temperature data must be here");
-        let array_gyro: [u8; 6] = buf[8..].try_into().expect("Gyro data must be here");
+impl From<&[u8; 14]> for RawData {
+    fn from(buf: &[u8; 14]) -> Self {
+        let array_accel: &[u8; 6] = buf[..6].try_into().expect("Accel data must be here");
+        let array_temp: &[u8; 2] = buf[6..8].try_into().expect("Temperature data must be here");
+        let array_gyro: &[u8; 6] = buf[8..].try_into().expect("Gyro data must be here");
         RawData {
             accel: AccelData::from(array_accel),
             temp: Temperature::from(array_temp),
@@ -460,7 +460,7 @@ impl From<[u8; 14]> for RawData {
     }
 }
 
-fn take2x3(data: [u8; 6]) -> (i16, i16, i16) {
+fn take2x3(data: &[u8; 6]) -> (i16, i16, i16) {
     (
         i16::from_be_bytes([data[0], data[1]]),
         i16::from_be_bytes([data[2], data[3]]),
