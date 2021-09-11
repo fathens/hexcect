@@ -1,26 +1,26 @@
 use core::fmt::Debug;
 use core::fmt::Formatter;
 use derive_more::{From, Into};
-use embedded_hal::blocking::i2c::{Write, WriteRead};
+use embedded_hal::blocking::i2c::{SevenBitAddress, Write, WriteRead};
 
 #[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RegAddr(pub u8);
 
 #[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Address(pub u8);
+pub struct I2cAddr(pub SevenBitAddress);
 
 pub trait Register: From<u8> + Debug + Copy + Eq {
     const ADDR: RegAddr;
 }
 
-pub trait RegisterIO<T>
+pub trait I2cRegister<T>
 where
     T: Write + WriteRead,
     <T as Write>::Error: Debug,
     <T as WriteRead>::Error: Debug,
 {
     fn i2c_device(&mut self) -> &mut T;
-    fn address(&self) -> Address;
+    fn address(&self) -> I2cAddr;
 
     fn read_bytes(&mut self, reg: RegAddr, res: &mut [u8]) -> Result<(), Error<T>> {
         let addr = self.address();
@@ -57,16 +57,16 @@ where
 
 pub struct I2cWithAddr<T> {
     dev: T,
-    address: Address,
+    address: I2cAddr,
 }
 
 impl<T> I2cWithAddr<T> {
-    pub fn new(dev: T, address: Address) -> Self {
+    pub fn new(dev: T, address: I2cAddr) -> Self {
         Self { dev, address }
     }
 }
 
-impl<T> RegisterIO<T> for I2cWithAddr<T>
+impl<T> I2cRegister<T> for I2cWithAddr<T>
 where
     T: Write + WriteRead,
     <T as Write>::Error: Debug,
@@ -76,7 +76,7 @@ where
         &mut self.dev
     }
 
-    fn address(&self) -> Address {
+    fn address(&self) -> I2cAddr {
         self.address
     }
 }
