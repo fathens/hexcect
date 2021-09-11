@@ -2,7 +2,7 @@ pub mod error;
 pub mod raw_data;
 mod register;
 
-use crate::hardware::i2c::register_io::*;
+use crate::hardware::i2c::*;
 use raw_data::*;
 use register::*;
 
