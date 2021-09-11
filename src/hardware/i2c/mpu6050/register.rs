@@ -409,9 +409,9 @@ impl RegisterRange for FifoCount {
     const ADDR: RegAddr = RegAddr(0x72);
 }
 
-impl From<[u8; 2]> for FifoCount {
-    fn from(buf: [u8; 2]) -> Self {
-        Self::from(u16::from_be_bytes(buf))
+impl From<&[u8; 2]> for FifoCount {
+    fn from(buf: &[u8; 2]) -> Self {
+        Self::from(u16::from_be_bytes(*buf))
     }
 }
 
@@ -419,8 +419,8 @@ impl RegisterRange for AccelData {
     const ADDR: RegAddr = RegAddr(0x3b);
 }
 
-impl From<[u8; 6]> for AccelData {
-    fn from(data: [u8; 6]) -> Self {
+impl From<&[u8; 6]> for AccelData {
+    fn from(data: &[u8; 6]) -> Self {
         let (x, y, z) = take2x3(data);
         Self { x, y, z }
     }
@@ -430,9 +430,9 @@ impl RegisterRange for Temperature {
     const ADDR: RegAddr = RegAddr(0x41);
 }
 
-impl From<[u8; 2]> for Temperature {
-    fn from(data: [u8; 2]) -> Self {
-        Self::from(i16::from_be_bytes(data))
+impl From<&[u8; 2]> for Temperature {
+    fn from(data: &[u8; 2]) -> Self {
+        Self::from(i16::from_be_bytes(*data))
     }
 }
 
@@ -440,18 +440,18 @@ impl RegisterRange for GyroData {
     const ADDR: RegAddr = RegAddr(0x43);
 }
 
-impl From<[u8; 6]> for GyroData {
-    fn from(data: [u8; 6]) -> Self {
+impl From<&[u8; 6]> for GyroData {
+    fn from(data: &[u8; 6]) -> Self {
         let (x, y, z) = take2x3(data);
         Self { x, y, z }
     }
 }
 
-impl From<[u8; 14]> for RawData {
-    fn from(buf: [u8; 14]) -> Self {
-        let array_accel: [u8; 6] = buf[..6].try_into().expect("Accel data must be here");
-        let array_temp: [u8; 2] = buf[6..8].try_into().expect("Temperature data must be here");
-        let array_gyro: [u8; 6] = buf[8..].try_into().expect("Gyro data must be here");
+impl From<&[u8; 14]> for RawData {
+    fn from(buf: &[u8; 14]) -> Self {
+        let array_accel: &[u8; 6] = buf[..6].try_into().expect("Accel data must be here");
+        let array_temp: &[u8; 2] = buf[6..8].try_into().expect("Temperature data must be here");
+        let array_gyro: &[u8; 6] = buf[8..].try_into().expect("Gyro data must be here");
         RawData {
             accel: AccelData::from(array_accel),
             temp: Temperature::from(array_temp),
@@ -460,7 +460,7 @@ impl From<[u8; 14]> for RawData {
     }
 }
 
-fn take2x3(data: [u8; 6]) -> (i16, i16, i16) {
+fn take2x3(data: &[u8; 6]) -> (i16, i16, i16) {
     (
         i16::from_be_bytes([data[0], data[1]]),
         i16::from_be_bytes([data[2], data[3]]),

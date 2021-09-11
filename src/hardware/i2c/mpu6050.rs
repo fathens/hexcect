@@ -100,6 +100,6 @@ where
     pub fn get_infos(&mut self) -> Result<RawData, Error<T>> {
         let mut buf = [0; 14];
         self.dev.read_bytes(AccelData::ADDR, &mut buf)?;
-        Ok(RawData::from(buf))
+        Ok(RawData::from(&buf))
     }
 }
