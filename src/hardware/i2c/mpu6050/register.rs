@@ -17,7 +17,7 @@ use std::convert::TryInto;
 
 /// This register configures the external Frame Synchronization (FSYNC) pin sampling and
 /// the Digital Low Pass Filter (DLPF) setting for both the gyroscopes and accelerometers.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Configure(u8);
 
 impl Register for Configure {
@@ -46,7 +46,7 @@ impl Configure {
 
 /// This register is used to trigger gyroscope self-test and
 /// configure the gyroscopes’ full scale range.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GyroConfig(u8);
 
 impl Register for GyroConfig {
@@ -75,7 +75,7 @@ impl GyroConfig {
 /// This register is used to trigger accelerometer self test and
 /// configure the accelerometer full scale range.
 /// This register also configures the Digital High Pass Filter (DHPF).
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AccelConfig(u8);
 
 impl Register for AccelConfig {
@@ -104,7 +104,7 @@ impl AccelConfig {
 /// This register allows the user to configure the power mode and
 /// clock source. It also provides a bit for resetting the entire device,
 /// and a bit for disabling the temperature sensor.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PwrMgmt1(u8);
 
 impl Register for PwrMgmt1 {
@@ -178,7 +178,7 @@ impl PwrMgmt1 {
 /// the same accelerometer sample may be output to the FIFO, DMP, and sensor registers more than once.
 /// For a diagram of the gyroscope and accelerometer signal paths,
 /// see Section 8 of the MPU6000/MPU-6050 Product Specification document.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampleRateDivider(u8);
 
 impl Register for SampleRateDivider {
@@ -199,7 +199,7 @@ impl SampleRateDivider {
 /// I2C Master Mode, and primary I2C interface.
 /// The FIFO buffer, I2C Master, sensor signal paths and sensor registers
 /// can also be reset using this register.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserCtrl(u8);
 
 impl Register for UserCtrl {
@@ -269,7 +269,7 @@ impl UserCtrl {
 /// For information regarding the interrupt status for each interrupt generation source,
 /// please refer to Register 58.
 /// Further information regarding I2C Master interrupt generation can be found in Register 54.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IntEnable(u8);
 
 impl Register for IntEnable {
@@ -317,7 +317,7 @@ impl IntEnable {
 }
 
 /// This register determines which sensor measurements are loaded into the FIFO buffer.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FifoEnable(u8);
 
 impl Register for FifoEnable {
@@ -391,7 +391,7 @@ impl FifoEnable {
 }
 
 /// This register is used to read and write data from the FIFO buffer.
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FifoData(u8);
 
 impl Register for FifoData {

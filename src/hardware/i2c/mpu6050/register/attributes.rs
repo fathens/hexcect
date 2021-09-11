@@ -6,7 +6,7 @@ use core::fmt::Debug;
 use embedded_time::{duration::*, rate::*};
 use num_derive::FromPrimitive;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FlagsXYZ(pub(super) u8);
 
 impl FlagsXYZ {
@@ -35,7 +35,7 @@ impl FlagsXYZ {
 /// However, it is highly recommended that the device be configured to use one of the gyroscopes
 /// (or an external clock source) as the clock reference for improved stability.
 /// The clock source can be selected according to the following table.
-#[derive(Debug, FromPrimitive, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, FromPrimitive, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum ClockSel {
     Internal8MHz = 0,
@@ -48,7 +48,7 @@ pub enum ClockSel {
     Stop = 7,
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum FrameSync {
     Disabled = 0,
@@ -61,7 +61,7 @@ pub enum FrameSync {
     AccelZoutL = 7,
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum DigitalLowPassFilterCfg {
     V0 = 0,
@@ -74,7 +74,7 @@ pub enum DigitalLowPassFilterCfg {
     V7 = 7,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct DlpFilter {
     pub bandwidth: Hertz,
     pub delay: Microseconds<u32>,

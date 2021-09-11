@@ -3,10 +3,10 @@ use core::fmt::Formatter;
 use derive_more::{From, Into};
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RegAddr(pub u8);
 
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Address(pub u8);
 
 pub trait Register: From<u8> + Debug + Copy + Eq {

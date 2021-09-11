@@ -4,17 +4,17 @@ use num_derive::FromPrimitive;
 
 const RESOLUTION: f32 = 65500.0;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct RawData {
     pub temp: Temperature,
     pub gyro: GyroData,
     pub accel: AccelData,
 }
 
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Temperature(i16);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct GyroData {
     pub x: i16,
     pub y: i16,
@@ -28,7 +28,7 @@ impl GyroData {
     }
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum GyroFullScale {
     Deg250,
@@ -44,7 +44,7 @@ impl GyroFullScale {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct AccelData {
     pub x: i16,
     pub y: i16,
@@ -58,7 +58,7 @@ impl AccelData {
     }
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum AccelFullScale {
     G2,
@@ -74,7 +74,7 @@ impl AccelFullScale {
     }
 }
 
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FifoCount(u16);
 
 #[cfg(test)]
