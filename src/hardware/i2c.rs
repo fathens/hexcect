@@ -2,6 +2,7 @@ pub mod mpu6050;
 pub mod pca9685;
 pub mod register_io;
 pub mod servo;
+pub mod thread_safe;
 
 use i2cdev::linux::LinuxI2CError;
 use linux_embedded_hal::I2cdev;
