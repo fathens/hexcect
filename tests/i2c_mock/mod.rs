@@ -13,6 +13,7 @@ type I2cAddr = SevenBitAddress;
 pub struct MockI2c {
     pub reading: HashMap<I2cAddr, VecDeque<u8>>,
     pub written: HashMap<I2cAddr, VecDeque<u8>>,
+    current_addr: I2cAddr,
 }
 
 impl MockI2c {
@@ -22,17 +23,32 @@ impl MockI2c {
             reading.push_back(*b);
         }
     }
+
+    fn write_current(&mut self, bytes: &[u8]) -> Result<(), std::io::Error> {
+        let vec = self.written.entry(self.current_addr).or_insert_with(VecDeque::new);
+        for b in bytes {
+            vec.push_back(*b);
+        }
+        Ok(())
+    }
+
+    fn read_current(&mut self, buf: &mut [u8]) -> Result<(), std::io::Error> {
+        let vec = self.reading.entry(self.current_addr).or_insert_with(VecDeque::new);
+        for i in 0..buf.len() {
+            if let Some(b) = vec.pop_front() {
+                buf[i] = b;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Write for MockI2c {
     type Error = std::io::Error;
 
     fn write(&mut self, address: I2cAddr, bytes: &[u8]) -> Result<(), Self::Error> {
-        let vec = self.written.entry(address).or_insert_with(VecDeque::new);
-        for b in bytes {
-            vec.push_back(*b);
-        }
-        Ok(())
+        self.current_addr = address;
+        self.write_current(bytes)
     }
 }
 
@@ -45,17 +61,9 @@ impl WriteRead for MockI2c {
         bytes: &[u8],
         buf: &mut [u8],
     ) -> Result<(), Self::Error> {
-        let writing = self.written.entry(address).or_insert_with(VecDeque::new);
-        for b in bytes {
-            writing.push_back(*b);
-        }
-        let reading = self.reading.entry(address).or_insert_with(VecDeque::new);
-        for i in 0..buf.len() {
-            if let Some(b) = reading.pop_front() {
-                buf[i] = b;
-            }
-        }
-        Ok(())
+        self.current_addr = address;
+        self.write_current(bytes)?;
+        self.read_current(buf)
     }
 }
 
