@@ -54,6 +54,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct I2cWithAddr<T> {
     dev: T,
     address: I2cAddr,

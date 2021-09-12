@@ -3,6 +3,16 @@ use hexcect::hardware::i2c::*;
 mod i2c_mock;
 use i2c_mock::*;
 
+use rand::prelude::*;
+
+fn sleep_rand() {
+    let mut rng = rand::thread_rng();
+    let s: f64 = rng.gen();
+    let v = (100.0 * s) as u64;
+    let dur = std::time::Duration::from_nanos(v);
+    std::thread::sleep(dur);
+}
+
 #[test]
 fn write_registers_addresses() {
     let mut mock = MockI2c::default();
@@ -18,19 +28,31 @@ fn write_registers_addresses() {
 
     for i in 0_u8..100 {
         let safe_i2c = safe_i2c.clone();
-        let h = std::thread::spawn(move || {
-            let mut i2c = I2cWithAddr::new(safe_i2c, i.into());
-            for r in 0..50 {
-                let offset = 50 + r;
-                let reg_a: MockRegisterA = mk_reg(offset);
-                let reg_b: MockRegisterB = mk_reg(offset);
-                let reg_c: MockRegisterC = mk_reg(offset);
-                i2c.write_register(reg_a).unwrap();
-                i2c.write_register(reg_b).unwrap();
-                i2c.write_register(reg_c).unwrap();
-            }
-        });
-        handles.push(h);
+        let i2c = I2cWithAddr::new(safe_i2c, i.into());
+
+        for offset in 50..100 {
+            let mut cloned_i2c = i2c.clone();
+            handles.push(std::thread::spawn(move || {
+                sleep_rand();
+                cloned_i2c
+                    .write_register::<MockRegisterA>(mk_reg(offset))
+                    .unwrap();
+            }));
+            let mut cloned_i2c = i2c.clone();
+            handles.push(std::thread::spawn(move || {
+                sleep_rand();
+                cloned_i2c
+                    .write_register::<MockRegisterB>(mk_reg(offset))
+                    .unwrap();
+            }));
+            let mut cloned_i2c = i2c.clone();
+            handles.push(std::thread::spawn(move || {
+                sleep_rand();
+                cloned_i2c
+                    .write_register::<MockRegisterC>(mk_reg(offset))
+                    .unwrap();
+            }));
+        }
     }
     for h in handles {
         h.join().unwrap();
@@ -40,16 +62,9 @@ fn write_registers_addresses() {
     assert_eq!(written.len(), 100);
     for i in 0_u8..100 {
         let data = &written[&i];
-        let vec: Vec<_> = data.iter().collect();
-        let mut chunks: Vec<_> = vec.chunks(2).collect();
+        let vec: Vec<_> = data.iter().map(|a| *a).collect();
+        let mut chunks: Vec<_> = vec.chunks(2).map(|c| [c[0], c[1]]).collect();
         chunks.sort();
-        let chunks: Vec<Vec<u8>> = chunks
-            .iter()
-            .map(|cs| {
-                let v: Vec<_> = (*cs).iter().map(|c| **c).collect();
-                v
-            })
-            .collect();
 
         let mut expected = vec![];
         for reg_addr in [
@@ -57,10 +72,10 @@ fn write_registers_addresses() {
             MockRegisterB::ADDR,
             MockRegisterC::ADDR,
         ] {
-            for r in 0_u8..50 {
+            for offset in 50_u8..100 {
                 let a: u8 = reg_addr.into();
-                let v = a + r + 50;
-                expected.push(vec![a, v]);
+                let v = a + offset;
+                expected.push([a, v]);
             }
         }
         assert_eq!(chunks, expected);
