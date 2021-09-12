@@ -23,7 +23,10 @@ impl MockI2c {
     }
 
     fn write_current(&mut self, bytes: &[u8]) -> Result<(), std::io::Error> {
-        let vec = self.written.entry(self.current_addr).or_insert_with(VecDeque::new);
+        let vec = self
+            .written
+            .entry(self.current_addr)
+            .or_insert_with(VecDeque::new);
         for b in bytes {
             vec.push_back(*b);
         }
@@ -31,7 +34,10 @@ impl MockI2c {
     }
 
     fn read_current(&mut self, buf: &mut [u8]) -> Result<(), std::io::Error> {
-        let vec = self.reading.entry(self.current_addr).or_insert_with(VecDeque::new);
+        let vec = self
+            .reading
+            .entry(self.current_addr)
+            .or_insert_with(VecDeque::new);
         for i in 0..buf.len() {
             if let Some(b) = vec.pop_front() {
                 buf[i] = b;
