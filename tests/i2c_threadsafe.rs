@@ -3,14 +3,25 @@ use hexcect::hardware::i2c::*;
 mod i2c_mock;
 use i2c_mock::*;
 
-use rand::prelude::*;
-
 fn sleep_rand() {
-    let mut rng = rand::thread_rng();
-    let s: f64 = rng.gen();
-    let v = (100.0 * s) as u64;
+    let v = (100.0 * rand::random::<f64>()) as u64;
     let dur = std::time::Duration::from_nanos(v);
     std::thread::sleep(dur);
+}
+
+fn run_write<R: Register>(
+    mut i2c: I2cWithAddr<ThreadSafeI2c<MockI2c>>,
+    offset: u8,
+) -> std::thread::JoinHandle<()>
+where
+    u8: From<R>,
+{
+    std::thread::spawn(move || {
+        sleep_rand();
+        let addr: u8 = R::ADDR.into();
+        let reg: R = (offset + addr).into();
+        i2c.write_register(reg).unwrap();
+    })
 }
 
 #[test]
@@ -21,37 +32,13 @@ fn write_registers_addresses() {
 
     let mut handles = vec![];
 
-    fn mk_reg<R: Register>(offset: u8) -> R {
-        let addr: u8 = R::ADDR.into();
-        (offset + addr).into()
-    }
-
     for i in 0_u8..100 {
-        let safe_i2c = safe_i2c.clone();
-        let i2c = I2cWithAddr::new(safe_i2c, i.into());
+        let i2c = I2cWithAddr::new(safe_i2c.clone(), i.into());
 
         for offset in 50..100 {
-            let mut cloned_i2c = i2c.clone();
-            handles.push(std::thread::spawn(move || {
-                sleep_rand();
-                cloned_i2c
-                    .write_register::<MockRegisterA>(mk_reg(offset))
-                    .unwrap();
-            }));
-            let mut cloned_i2c = i2c.clone();
-            handles.push(std::thread::spawn(move || {
-                sleep_rand();
-                cloned_i2c
-                    .write_register::<MockRegisterB>(mk_reg(offset))
-                    .unwrap();
-            }));
-            let mut cloned_i2c = i2c.clone();
-            handles.push(std::thread::spawn(move || {
-                sleep_rand();
-                cloned_i2c
-                    .write_register::<MockRegisterC>(mk_reg(offset))
-                    .unwrap();
-            }));
+            handles.push(run_write::<MockRegisterA>(i2c.clone(), offset));
+            handles.push(run_write::<MockRegisterB>(i2c.clone(), offset));
+            handles.push(run_write::<MockRegisterC>(i2c.clone(), offset));
         }
     }
     for h in handles {
