@@ -1,5 +1,5 @@
 use embedded_hal::blocking::i2c::{AddressMode, Write, WriteRead};
-use parking_lot::Mutex;
+use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
 
 pub struct ThreadSafeI2c<T>(Arc<Mutex<T>>);
@@ -7,6 +7,10 @@ pub struct ThreadSafeI2c<T>(Arc<Mutex<T>>);
 impl<T> ThreadSafeI2c<T> {
     pub fn new(t: T) -> Self {
         Self(Arc::new(Mutex::new(t)))
+    }
+
+    pub fn lock(&self) -> MutexGuard<'_, T> {
+        self.0.lock()
     }
 }
 
