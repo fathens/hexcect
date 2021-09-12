@@ -1,13 +1,12 @@
+use super::I2cAddr;
+
 use core::fmt::Debug;
 use core::fmt::Formatter;
 use derive_more::{From, Into};
-use embedded_hal::blocking::i2c::{SevenBitAddress, Write, WriteRead};
+use embedded_hal::blocking::i2c::{Write, WriteRead};
 
 #[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RegAddr(pub u8);
-
-#[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct I2cAddr(pub SevenBitAddress);
 
 pub trait Register: From<u8> + Debug + Copy + Eq {
     const ADDR: RegAddr;
@@ -55,6 +54,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct I2cWithAddr<T> {
     dev: T,
     address: I2cAddr,
