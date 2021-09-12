@@ -1,4 +1,6 @@
-use super::pca9685::{HasChannel, HasPrescale, PwmError, PCA9685};
+use super::pca9685::{collect_frequency, HasChannel, HasPrescale, PwmError, PCA9685};
+use embedded_hal::blocking::i2c::{Write, WriteRead};
+use i2cdev::linux::LinuxI2CError;
 use pwm_pca9685::Channel;
 
 pub struct ServoMotor {
@@ -11,7 +13,7 @@ pub struct ServoMotor {
 
 impl ServoMotor {
     pub fn new(channel: Channel, frequency: f64, min_width: f64, max_width: f64) -> ServoMotor {
-        let (frequency, prescale) = PCA9685::collect_frequency(frequency);
+        let (frequency, prescale) = collect_frequency(frequency);
         ServoMotor {
             channel,
             frequency,
@@ -27,7 +29,10 @@ impl ServoMotor {
         pulse / unit
     }
 
-    pub fn set_by_rate(&self, pwm: &mut PCA9685, v: f64) -> Result<(), PwmError> {
+    pub fn set_by_rate<D>(&self, pwm: &mut PCA9685<D>, v: f64) -> Result<(), PwmError>
+    where
+        D: Write<Error = LinuxI2CError> + WriteRead<Error = LinuxI2CError>,
+    {
         let rate = self.calc_pulse(v);
         pwm.set_prescale(self.prescale)?;
         pwm.set_one_duty_cycle(self.channel, rate)
@@ -65,7 +70,10 @@ impl SG90_180 {
         self.servo.calc_pulse(v)
     }
 
-    pub fn set_angle(&self, pwm: &mut PCA9685, angle: f64) -> Result<(), PwmError> {
+    pub fn set_angle<D>(&self, pwm: &mut PCA9685<D>, angle: f64) -> Result<(), PwmError>
+    where
+        D: Write<Error = LinuxI2CError> + WriteRead<Error = LinuxI2CError>,
+    {
         let v = SG90_180::calc_angle_rate(angle);
         self.servo.set_by_rate(pwm, v)
     }

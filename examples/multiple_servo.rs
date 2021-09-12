@@ -1,12 +1,12 @@
 extern crate hexcect;
 
-use hexcect::hardware::i2c::connect;
+use hexcect::hardware::i2c;
 use hexcect::hardware::i2c::pca9685::PCA9685;
 use hexcect::hardware::i2c::servo::SG90_180;
 use pwm_pca9685::Channel;
 
 fn main() {
-    let dev = connect(1).unwrap();
+    let dev = i2c::connect(1).unwrap();
     match PCA9685::new(dev, 0x40) {
         Ok(mut pwm) => {
             println!("Get PCA9685");
