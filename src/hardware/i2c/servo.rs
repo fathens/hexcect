@@ -61,7 +61,7 @@ impl SG90_180 {
         SG90_180 { servo }
     }
 
-    fn calc_angle_rate(angle: f64) -> f64 {
+    pub fn calc_angle_rate(angle: f64) -> f64 {
         angle.max(0.0).min(180.0) / 180.0
     }
 
