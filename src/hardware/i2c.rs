@@ -26,7 +26,7 @@ lazy_static! {
 pub struct I2cAddr(pub SevenBitAddress);
 
 fn get_connect(path: &str) -> ResultDev {
-    I2cdev::new(&path).map(ThreadSafeI2c::new).map_err(|err| {
+    I2cdev::new(path).map(ThreadSafeI2c::new).map_err(|err| {
         eprintln!("Failed to connect I2C device '{}': {}", path, err);
         eprintln!("{:?}", Backtrace::new());
         err.to_string()
