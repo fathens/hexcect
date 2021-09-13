@@ -21,6 +21,8 @@ fn run_write<R: Register>(
     })
 }
 
+const CHANNEL_NUM: u8 = 10;
+
 #[test]
 fn write_registers_addresses() {
     let mut mock = MockI2c::default();
@@ -29,7 +31,7 @@ fn write_registers_addresses() {
 
     let mut handles = vec![];
 
-    for i in 0_u8..100 {
+    for i in 0_u8..CHANNEL_NUM {
         let i2c = I2cWithAddr::new(safe_i2c.clone(), i.into());
 
         for offset in 50..100 {
@@ -43,8 +45,8 @@ fn write_registers_addresses() {
     }
 
     let written = safe_i2c.lock().written.clone();
-    assert_eq!(written.len(), 100);
-    for i in 0_u8..100 {
+    assert_eq!(written.len(), 10);
+    for i in 0_u8..CHANNEL_NUM {
         let data = &written[&i];
         let vec: Vec<_> = data.iter().map(|a| *a).collect();
         let mut chunks: Vec<_> = vec.chunks(2).map(|c| [c[0], c[1]]).collect();
