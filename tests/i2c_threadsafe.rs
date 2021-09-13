@@ -12,10 +12,7 @@ fn sleep_rand() {
 fn run_write<R: Register>(
     mut i2c: I2cWithAddr<ThreadSafeI2c<MockI2c>>,
     offset: u8,
-) -> std::thread::JoinHandle<()>
-where
-    u8: From<R>,
-{
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         sleep_rand();
         let addr: u8 = R::ADDR.into();

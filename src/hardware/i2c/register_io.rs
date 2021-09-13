@@ -8,7 +8,7 @@ use embedded_hal::blocking::i2c::{Write, WriteRead};
 #[derive(Debug, From, Into, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RegAddr(pub u8);
 
-pub trait Register: From<u8> + Debug + Copy + Eq {
+pub trait Register: From<u8> + Into<u8> + Debug + Copy + Eq {
     const ADDR: RegAddr;
 }
 
@@ -46,10 +46,7 @@ where
         Ok(R::from(byte))
     }
 
-    fn write_register<R: Register>(&mut self, reg_value: R) -> Result<(), Error<T>>
-    where
-        u8: From<R>,
-    {
+    fn write_register<R: Register>(&mut self, reg_value: R) -> Result<(), Error<T>> {
         self.write_byte(R::ADDR, reg_value.into())
     }
 }
