@@ -1,0 +1,10 @@
+[package]
+name = "measure_units_derive"
+version = "0.1.3"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+measure_units_derive_internal = { path = "../derive_internal" }
