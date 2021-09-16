@@ -1,5 +1,5 @@
-pub mod angle;
+mod angle;
+mod traits;
 
-pub trait FloatStatus {
-    fn is_nan(&self) -> bool;
-}
+pub use angle::*;
+pub use traits::*;
