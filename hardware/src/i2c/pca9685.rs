@@ -1,7 +1,7 @@
-use crate::util::DivideList;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use i2cdev::linux::LinuxI2CError;
 use pwm_pca9685::{Address, Channel, Error, Pca9685};
+use util::DivideList;
 
 const OSC: f64 = 25000000.0;
 const PULSE_BASE: f64 = 4096.0;

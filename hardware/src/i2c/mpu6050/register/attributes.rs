@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::util::SingleByte;
 use core::fmt::Debug;
 use embedded_time::{duration::*, rate::*};
 use num_derive::FromPrimitive;
+use util::SingleByte;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FlagsXYZ(pub(super) u8);

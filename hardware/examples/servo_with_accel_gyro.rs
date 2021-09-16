@@ -1,12 +1,10 @@
-extern crate hexcect;
-
-use hexcect::hardware::i2c::connect;
-use hexcect::hardware::i2c::mpu6050::raw_data::{AccelFullScale, GyroFullScale};
-use hexcect::hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
-use hexcect::hardware::i2c::pca9685::PCA9685;
-use hexcect::hardware::i2c::register_io::I2cWithAddr;
-use hexcect::hardware::i2c::servo::SG90_180;
-use hexcect::model::sensor::{AccelInfo, GyroInfo};
+use hardware::i2c::connect;
+use hardware::i2c::mpu6050::raw_data::{AccelFullScale, GyroFullScale};
+use hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
+use hardware::i2c::pca9685::PCA9685;
+use hardware::i2c::register_io::I2cWithAddr;
+use hardware::i2c::servo::SG90_180;
+use hardware::model::sensor::{AccelInfo, GyroInfo};
 use linux_embedded_hal::Delay;
 use num_traits::FromPrimitive;
 use pwm_pca9685::Channel;

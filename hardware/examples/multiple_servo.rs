@@ -1,8 +1,6 @@
-extern crate hexcect;
-
-use hexcect::hardware::i2c;
-use hexcect::hardware::i2c::pca9685::PCA9685;
-use hexcect::hardware::i2c::servo::SG90_180;
+use hardware::i2c;
+use hardware::i2c::pca9685::PCA9685;
+use hardware::i2c::servo::SG90_180;
 use pwm_pca9685::Channel;
 use std::num::ParseIntError;
 

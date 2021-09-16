@@ -8,7 +8,7 @@ pub trait DivideList {
     ///
     /// # Examples
     /// ```
-    /// use hexcect::util::DivideList;
+    /// use util::DivideList;
     ///
     /// let list = vec!["A", "XA", "B", "XB"];
     /// let result = list.divide_by(|s| s.len());

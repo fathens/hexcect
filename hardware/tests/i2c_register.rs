@@ -1,4 +1,4 @@
-use hexcect::hardware::i2c::*;
+use hardware::i2c::*;
 
 mod i2c_mock;
 use i2c_mock::*;

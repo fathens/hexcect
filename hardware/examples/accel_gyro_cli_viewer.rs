@@ -1,8 +1,6 @@
-extern crate hexcect;
-
-use hexcect::hardware::i2c::connect;
-use hexcect::hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
-use hexcect::hardware::i2c::register_io::I2cWithAddr;
+use hardware::i2c::connect;
+use hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
+use hardware::i2c::register_io::I2cWithAddr;
 use linux_embedded_hal::Delay;
 use std::io::{stdout, Result};
 

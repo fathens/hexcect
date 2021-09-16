@@ -1,4 +1,4 @@
-use hexcect::hardware::i2c::register_io::*;
+use hardware::i2c::register_io::*;
 
 use core::fmt::Debug;
 use derive_more::{From, Into};

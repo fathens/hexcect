@@ -26,7 +26,7 @@ pub trait SingleByte {
     ///
     /// # Examples
     /// ```
-    /// use hexcect::util::SingleByte;
+    /// use util::SingleByte;
     ///
     /// let a = 0b_1110_0110_u8;
     /// let b = a.get_with_mask(0b111, 3);
@@ -40,7 +40,7 @@ pub trait SingleByte {
     ///
     /// # Examples
     /// ```
-    /// use hexcect::util::SingleByte;
+    /// use util::SingleByte;
     ///
     /// let a = 0b_1110_0110_u8;
     /// let b = a.set_with_mask(0b111, 3, 0b010);

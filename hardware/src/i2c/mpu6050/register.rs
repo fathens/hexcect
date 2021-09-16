@@ -6,9 +6,9 @@ mod test_addresses;
 mod tests;
 
 use super::raw_data::*;
-use crate::hardware::i2c::register_io::*;
-use crate::util::SingleByte;
+use crate::i2c::register_io::*;
 pub use attributes::*;
+use util::SingleByte;
 
 use core::fmt::Debug;
 use derive_more::{From, Into};
