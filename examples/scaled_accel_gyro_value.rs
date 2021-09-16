@@ -6,7 +6,8 @@ use hexcect::hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
 use hexcect::hardware::i2c::register_io::I2cWithAddr;
 use linux_embedded_hal::Delay;
 use num_traits::FromPrimitive;
-use std::io::{stdout, Result};
+use std::io::{stdout, Result as IOResult};
+use std::result::Result;
 
 use crossterm::*;
 use ctrlc;
@@ -14,33 +15,33 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 struct Args {
-    #[structopt(long, default_value = "0")]
-    accel: u8,
+    #[structopt(long, default_value = "0", parse(try_from_str = parse_accel))]
+    accel: AccelFullScale,
 
-    #[structopt(long, default_value = "0")]
-    gyro: u8,
+    #[structopt(long, default_value = "0", parse(try_from_str = parse_gyro))]
+    gyro: GyroFullScale,
+}
+
+fn parse_accel(src: &str) -> Result<AccelFullScale, String> {
+    from_u8(src, |v| {
+        AccelFullScale::from_u8(v)
+            .ok_or_else(|| format!("Accel Full Scale Selector is out of range [0-3]: {}", v))
+    })
+}
+
+fn parse_gyro(src: &str) -> Result<GyroFullScale, String> {
+    from_u8(src, |v| {
+        GyroFullScale::from_u8(v)
+            .ok_or_else(|| format!("Gyro Full Scale Selector is out of range [0-3]: {}", v))
+    })
 }
 
 fn main() {
     let args = Args::from_args();
-    let accel_fs = AccelFullScale::from_u8(args.accel).unwrap_or_else(|| {
-        eprintln!(
-            "Accel Full Scale Selector is out of range [0-3]: {}",
-            args.accel
-        );
-        std::process::exit(1);
-    });
-    let gyro_fs = GyroFullScale::from_u8(args.gyro).unwrap_or_else(|| {
-        eprintln!(
-            "Gyro Full Scale Selector is out of range [0-3]: {}",
-            args.gyro
-        );
-        std::process::exit(1);
-    });
-    run_loop(accel_fs, gyro_fs).unwrap();
+    run_loop(args.accel, args.gyro).unwrap();
 }
 
-fn run_loop(accel_fs: AccelFullScale, gyro_fs: GyroFullScale) -> Result<()> {
+fn run_loop(accel_fs: AccelFullScale, gyro_fs: GyroFullScale) -> IOResult<()> {
     let dev = connect(1)?;
     let mut mpu = MPU6050::new(I2cWithAddr::new(dev, ADDRESS_LOW)).unwrap();
     mpu.normal_setup(&mut Delay).unwrap();
@@ -82,4 +83,15 @@ fn run_loop(accel_fs: AccelFullScale, gyro_fs: GyroFullScale) -> Result<()> {
 
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
+}
+
+// ----------------------------------------------------------------
+
+fn from_u8<T, F>(src: &str, f: F) -> Result<T, String>
+where
+    F: Fn(u8) -> Result<T, String>,
+{
+    u8::from_str_radix(src, 10)
+        .map_err(|e| e.to_string())
+        .and_then(f)
 }
