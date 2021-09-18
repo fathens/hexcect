@@ -1,4 +1,5 @@
 use super::FloatStatus;
+use measure_units_derive::*;
 
 use derive_more::{From, Into};
 use num_derive::*;

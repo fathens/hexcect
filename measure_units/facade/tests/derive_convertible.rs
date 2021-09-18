@@ -1,4 +1,5 @@
 use measure_units::*;
+use measure_units_derive::*;
 
 use derive_more::From;
 
