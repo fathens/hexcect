@@ -1,16 +1,17 @@
 use super::*;
 
-use darling::*;
-use proc_macro2::{Ident, Literal, Punct, TokenStream, TokenTree};
+use darling::FromMeta;
+use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
-use std::{collections::HashMap, slice::Iter};
+use std::collections::HashMap;
 use syn::{Attribute, DeriveInput};
 
 pub fn convertible(items: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse2(items).unwrap();
-    let option = ConOpt::from_derive_input(&ast).unwrap();
+    let option = ConOpt::read_from_derive_input(&ast);
     let name = ast.ident;
-    let inner_type = newtype_inner(&ast.data).expect(&format!("{} is not newtype struct.", name));
+    let inner_type =
+        newtype_inner(&ast.data).unwrap_or_else(|| panic!("{} is not newtype struct.", name));
 
     let mut ts = TokenStream::new();
     for (target, cr) in option.convertible_sorted() {
@@ -33,50 +34,40 @@ enum ConvRate {
 }
 
 impl ConvRate {
-    fn parse_tokens(tokens: Vec<TokenTree>) -> HashMap<Ident, ConvRate> {
-        fn read_target(token: &TokenTree) -> Ident {
-            match token {
-                TokenTree::Ident(name) => name.clone(),
-                _ => panic!("Can not read target name"),
-            }
-        }
+    fn read_tokens(tokens: Vec<TokenTree>) -> HashMap<Ident, ConvRate> {
+        let read_target = |token| match token {
+            TokenTree::Ident(name) => name,
+            _ => panic!("Can not read target name"),
+        };
 
-        fn read_conv(token: &TokenTree) -> impl Fn(&str) -> ConvRate {
-            match token {
-                TokenTree::Punct(p) => match p.as_char() {
-                    '^' => |s: &str| ConvRate::Expo(i8::from_string(s).unwrap()),
-                    '=' => |s: &str| ConvRate::Real(f64::from_string(s).unwrap()),
-                    c => panic!("Unsupported token: {}", c),
-                },
-                _ => panic!("Can not read token"),
-            }
-        }
+        let read_conv = |token| match token {
+            TokenTree::Punct(p) => match p.as_char() {
+                '^' => |s: &str| ConvRate::Expo(i8::from_string(s).unwrap()),
+                '=' => |s: &str| ConvRate::Real(f64::from_string(s).unwrap()),
+                c => panic!("Unsupported token: {}", c),
+            },
+            _ => panic!("Can not read token"),
+        };
 
-        fn read_num<'a>(token: &'a TokenTree) -> std::result::Result<&'a Literal, &'a Punct> {
-            match token {
-                TokenTree::Literal(a) => Ok(a),
-                TokenTree::Punct(a) => Err(a),
-                _ => panic!("Can not read number"),
-            }
-        }
+        let read_num = |token| match token {
+            TokenTree::Literal(a) => Ok(a),
+            TokenTree::Punct(a) => Err(a),
+            _ => panic!("Can not read number"),
+        };
 
-        fn read_rate(ts: &mut Iter<TokenTree>) -> String {
-            match read_num(ts.next().expect("Can not read number")) {
+        let mut result = HashMap::new();
+
+        let mut ts = tokens.into_iter();
+        while let Some(first) = ts.next() {
+            let target = read_target(first);
+            let mk_conv = read_conv(ts.next().expect("Can not read token"));
+            let rate = match read_num(ts.next().expect("Can not read number")) {
                 Ok(l) => l.to_string(),
                 Err(p) => match read_num(ts.next().expect("Can not read number")) {
                     Ok(l) => format!("{}{}", p.as_char(), l.to_string()),
                     Err(_) => panic!("Can not read number"),
                 },
-            }
-        }
-
-        let mut result = HashMap::new();
-
-        let mut ts = tokens.iter();
-        while let Some(first) = ts.next() {
-            let target = read_target(first);
-            let mk_conv = read_conv(ts.next().expect("Can not read token"));
-            let rate = read_rate(&mut ts);
+            };
             result.insert(target, mk_conv(&rate));
 
             if let Some(c) = ts.next() {
@@ -90,8 +81,8 @@ impl ConvRate {
     }
 
     fn convert(&self, inner: &Type, src: TokenStream) -> TokenStream {
-        match self {
-            &ConvRate::Expo(e) => {
+        match *self {
+            ConvRate::Expo(e) => {
                 if e < 0 {
                     quote! {
                         let v = #src * (10u32.pow((#e).abs() as u32) as #inner);
@@ -104,7 +95,7 @@ impl ConvRate {
                     }
                 }
             }
-            &ConvRate::Real(rate) => quote! {
+            ConvRate::Real(rate) => quote! {
                 let v = #src / (#rate as #inner);
                 v.into()
             },
@@ -118,31 +109,28 @@ struct ConOpt {
 }
 
 impl ConOpt {
-    fn from_derive_input(ast: &DeriveInput) -> Result<ConOpt> {
-        let mut convertible = HashMap::new();
-        ast.attrs
+    fn read_from_derive_input(ast: &DeriveInput) -> ConOpt {
+        let convertible = ast
+            .attrs
             .iter()
             .filter(|a| a.path.is_ident("convertible"))
-            .map(ConOpt::parse_convertible)
-            .for_each(|h| convertible.extend(h));
-        Ok(ConOpt { convertible })
+            .flat_map(|a| ConOpt::read_convertible(a).into_iter())
+            .collect();
+        ConOpt { convertible }
     }
 
-    fn parse_convertible(attr: &Attribute) -> HashMap<Ident, ConvRate> {
-        let mut keys = HashMap::new();
-        attr
-            .tokens
+    fn read_convertible(attr: &Attribute) -> HashMap<Ident, ConvRate> {
+        attr.tokens
             .clone()
             .into_iter()
-            .for_each(|t| match t {
+            .flat_map(|t| match t {
                 TokenTree::Group(g) => {
                     let gr = g.stream().into_iter().collect();
-                    let h = ConvRate::parse_tokens(gr);
-                    keys.extend(h);
+                    ConvRate::read_tokens(gr).into_iter()
                 }
                 _ => panic!("Unexpected token: {:?}", t),
-            });
-        keys
+            })
+            .collect()
     }
 
     fn convertible_sorted(&self) -> Vec<(&Ident, &ConvRate)> {
