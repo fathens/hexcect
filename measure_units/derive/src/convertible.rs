@@ -84,18 +84,18 @@ impl ConvRate {
             ConvRate::Expo(e) => {
                 if e < 0 {
                     quote! {
-                        let v = #src * (10u32.pow((#e).abs() as u32) as #inner);
+                        let v = #src / (10u32.pow((#e).abs() as u32) as #inner);
                         v.into()
                     }
                 } else {
                     quote! {
-                        let v = #src / (10u32.pow(#e as u32) as #inner);
+                        let v = #src * (10u32.pow(#e as u32) as #inner);
                         v.into()
                     }
                 }
             }
             ConvRate::Real(rate) => quote! {
-                let v = #src / (#rate as #inner);
+                let v = #src * (#rate as #inner);
                 v.into()
             },
         }
@@ -146,25 +146,25 @@ mod tests {
     #[test]
     fn simple_impl() {
         let a = quote! {
-            #[convertible(Km ^ 3, Milli ^ -3, Cm = 0.01)]
+            #[convertible(Km ^ -3, Milli ^ 3, Cm = 100)]
             struct Meter(f64);
         };
         let b = quote! {
             impl Convertible<Cm> for Meter {
                 fn convert(&self) -> Cm {
-                    let v = self.0 / (0.01f64 as f64);
+                    let v = self.0 * (100f64 as f64);
                     v.into()
                 }
             }
             impl Convertible<Km> for Meter {
                 fn convert(&self) -> Km {
-                    let v = self.0 / (10u32.pow(3i8 as u32) as f64);
+                    let v = self.0 / (10u32.pow((-3i8).abs() as u32) as f64);
                     v.into()
                 }
             }
             impl Convertible<Milli> for Meter {
                 fn convert(&self) -> Milli {
-                    let v = self.0 * (10u32.pow((-3i8).abs() as u32) as f64);
+                    let v = self.0 * (10u32.pow(3i8 as u32) as f64);
                     v.into()
                 }
             }
