@@ -1,5 +1,7 @@
+mod convertible;
 mod float_status;
 
+pub use convertible::*;
 pub use float_status::*;
 
 // ----------------------------------------------------------------

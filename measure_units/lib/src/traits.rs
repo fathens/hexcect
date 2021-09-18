@@ -7,3 +7,7 @@ pub trait FloatStatus {
     fn is_sign_positive(&self) -> bool;
     fn is_sign_negative(&self) -> bool;
 }
+
+pub trait Convertible<T> {
+    fn convert(&self) -> T;
+}
