@@ -1,13 +1,68 @@
-use super::FloatStatus;
+use crate::{Convertible, FloatStatus};
 use measure_units_derive::*;
 
 use derive_more::{From, Into};
 use num_derive::*;
 
+pub trait Angle<F>: From<F> + Into<F>
+where
+    F: From<f64>,
+    f64: From<F>,
+{
+    const MODULO: F;
+
+    fn normalize(self) -> Self {
+        let modulo: f64 = Self::MODULO.into();
+
+        let self_value: F = self.into();
+        let value: f64 = self_value.into();
+
+        let round = modulo * 2.0;
+        let v = value % round;
+        let mut r = if v.abs() < modulo {
+            v
+        } else {
+            let adding = if v.is_sign_positive() { -round } else { round };
+            v + adding
+        };
+        if (r - modulo).abs() < f64::EPSILON {
+            r = -modulo;
+        }
+
+        let result: F = r.into();
+        result.into()
+    }
+}
+
 #[derive(
     Debug, From, Into, Clone, Copy, PartialEq, PartialOrd, ToPrimitive, FromPrimitive, FloatStatus,
 )]
 pub struct Radian(f64);
+
+impl Angle<f64> for Radian {
+    const MODULO: f64 = core::f64::consts::PI;
+}
+
+impl Convertible<Degree> for Radian {
+    fn convert(&self) -> Degree {
+        Degree(self.0.to_degrees())
+    }
+}
+
+#[derive(
+    Debug, From, Into, Clone, Copy, PartialEq, PartialOrd, ToPrimitive, FromPrimitive, FloatStatus,
+)]
+pub struct Degree(f64);
+
+impl Angle<f64> for Degree {
+    const MODULO: f64 = 180.0;
+}
+
+impl Convertible<Radian> for Degree {
+    fn convert(&self) -> Radian {
+        Radian(self.0.to_radians())
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -15,44 +70,21 @@ mod tests {
     use core::cmp::Ordering;
 
     #[test]
-    fn cmp_radian() {
-        let a: Radian = 0.01.into();
-        let b: Radian = 1.02.into();
-        let z: Radian = 0.0.into();
-        let n: Radian = f64::NAN.into();
-        let i_posi: Radian = f64::INFINITY.into();
-        let i_nega: Radian = f64::NEG_INFINITY.into();
+    fn normalize() {
+        assert_eq!(Degree::from(180.0).normalize().0, -180.0);
+        assert_eq!(Degree::from(-180.0).normalize().0, -180.0);
+        assert_eq!(Degree::from(540.0).normalize().0, -180.0);
 
-        assert_eq!(a.is_nan(), false);
-        assert_eq!(b.is_nan(), false);
-        assert_eq!(z.is_nan(), false);
+        assert_eq!(Degree::from(360.0).normalize().0, 0.0);
+        assert_eq!(Degree::from(720.0).normalize().0, 0.0);
 
-        // assert_eq!(a.partial_cmp(&b), Some(Ordering::Less));
-        // assert_eq!(a < b, true);
-        // assert_eq!(a > b, false);
-        // assert_eq!(z < a, true);
-        // assert_eq!(z > a, false);
+        assert_eq!(Degree::from(179.0).normalize().0, 179.0);
+        assert_eq!(Degree::from(-179.0).normalize().0, -179.0);
 
-        assert_eq!(n.is_nan(), true);
-        // assert_eq!(z.partial_cmp(&n), None);
-        // assert_eq!(n.partial_cmp(&z), None);
-        // assert_eq!(n == z || n < z || n > z || z < n || z > n, false);
-        // assert_eq!(n == i_posi || n < i_posi || n > i_posi, false);
-        // assert_eq!(n == i_nega || n < i_nega || n > i_nega, false);
-
-        assert_eq!(i_posi.is_infinite(), true);
-        assert_eq!(i_posi.is_sign_positive(), true);
-        assert_eq!(i_posi.is_sign_negative(), false);
-
-        assert_eq!(i_nega.is_infinite(), true);
-        assert_eq!(i_nega.is_sign_positive(), false);
-        assert_eq!(i_nega.is_sign_negative(), true);
-
-        // assert_eq!(i_posi == i_nega, false);
-        // assert_eq!(i_posi < i_nega, false);
-        // assert_eq!(i_posi > i_nega, true);
-        // assert_eq!(i_nega > i_posi, false);
-        // assert_eq!(i_nega < i_posi, true);
+        assert_eq!(Degree::from(340.0).normalize().0, -20.0);
+        assert_eq!(Degree::from(10.0).normalize().0, 10.0);
+        assert_eq!(Degree::from(400.0).normalize().0, 40.0);
+        assert_eq!(Degree::from(-400.0).normalize().0, -40.0);
     }
 
     #[test]
