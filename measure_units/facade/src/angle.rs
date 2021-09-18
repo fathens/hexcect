@@ -35,39 +35,58 @@ where
 }
 
 #[derive(
-    Debug, From, Into, Clone, Copy, PartialEq, PartialOrd, ToPrimitive, FromPrimitive, FloatStatus,
+    Debug,
+    From,
+    Into,
+    Clone,
+    Copy,
+    PartialEq,
+    PartialOrd,
+    ToPrimitive,
+    FromPrimitive,
+    FloatStatus,
+    Convertible,
 )]
+#[convertible(Degree = 180.0 / core::f64::consts::PI)]
 pub struct Radian(f64);
 
 impl Angle<f64> for Radian {
     const MODULO: f64 = core::f64::consts::PI;
 }
 
-impl Convertible<Degree> for Radian {
-    fn convert(&self) -> Degree {
-        Degree(self.0.to_degrees())
-    }
-}
-
 #[derive(
-    Debug, From, Into, Clone, Copy, PartialEq, PartialOrd, ToPrimitive, FromPrimitive, FloatStatus,
+    Debug,
+    From,
+    Into,
+    Clone,
+    Copy,
+    PartialEq,
+    PartialOrd,
+    ToPrimitive,
+    FromPrimitive,
+    FloatStatus,
+    Convertible,
 )]
+#[convertible(Radian = core::f64::consts::PI / 180.0)]
 pub struct Degree(f64);
 
 impl Angle<f64> for Degree {
     const MODULO: f64 = 180.0;
 }
 
-impl Convertible<Radian> for Degree {
-    fn convert(&self) -> Radian {
-        Radian(self.0.to_radians())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use core::cmp::Ordering;
+
+    #[test]
+    fn convert() {
+        let a = Degree::from(90.0);
+        let b: Radian = a.convert();
+        let c: Degree = b.convert();
+        assert_eq!(b.0, a.0.to_radians());
+        assert_eq!(c.0, b.0.to_degrees());
+    }
 
     #[test]
     fn normalize() {

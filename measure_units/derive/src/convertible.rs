@@ -1,6 +1,5 @@
 use crate::common::*;
 
-use darling::FromMeta;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
 use std::collections::HashMap;
@@ -28,12 +27,12 @@ pub fn convertible(items: TokenStream) -> TokenStream {
 
 #[derive(Debug)]
 enum ConvRate {
-    Expo(i8),
-    Real(f64),
+    Expo(TokenStream),
+    Real(TokenStream),
 }
 
 impl ConvRate {
-    fn read_tokens(tokens: Vec<TokenTree>) -> HashMap<Ident, ConvRate> {
+    fn read_tokens(tokens: Vec<TokenTree>) -> (Ident, ConvRate) {
         let read_target = |token| match token {
             TokenTree::Ident(name) => name,
             _ => panic!("Can not read target name."),
@@ -41,61 +40,39 @@ impl ConvRate {
 
         let read_conv = |token| match token {
             TokenTree::Punct(p) => match p.as_char() {
-                '^' => |s: &str| ConvRate::Expo(i8::from_string(s).unwrap()),
-                '=' => |s: &str| ConvRate::Real(f64::from_string(s).unwrap()),
+                '^' => |s| ConvRate::Expo(s),
+                '=' => |s| ConvRate::Real(s),
                 c => panic!("Unsupported token: {}", c),
             },
             _ => panic!("Can not read token."),
         };
 
-        let read_num = |token| match token {
-            TokenTree::Literal(a) => Ok(a),
-            TokenTree::Punct(a) => Err(a),
-            _ => panic!("Can not read number."),
-        };
-
-        let mut result = HashMap::new();
-
         let mut ts = tokens.into_iter();
-        while let Some(first) = ts.next() {
-            let target = read_target(first);
-            let mk_conv = read_conv(ts.next().expect("Can not read token."));
-            let rate = match read_num(ts.next().expect("Can not read number.")) {
-                Ok(l) => l.to_string(),
-                Err(p) => match read_num(ts.next().expect("Can not read number.")) {
-                    Ok(l) => format!("{}{}", p.as_char(), l.to_string()),
-                    Err(_) => panic!("Can not read number."),
-                },
-            };
-            result.insert(target, mk_conv(&rate));
 
-            if let Some(c) = ts.next() {
-                match c {
-                    TokenTree::Punct(a) if a.as_char() == ',' => (),
-                    _ => panic!("Unrecognized token: {}", c),
-                }
-            }
-        }
-        result
+        let target = read_target(ts.next().expect("Can not read target name."));
+        let mk_conv = read_conv(ts.next().expect("Can not read token."));
+
+        let mut rate = TokenStream::new();
+        rate.extend(ts);
+        (target, mk_conv(rate))
     }
 
     fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
-        match *self {
-            ConvRate::Expo(e) => {
-                if e < 0 {
-                    quote! {
-                        let v = #src / (10u32.pow((#e).abs() as u32) as #inner);
-                        v.into()
-                    }
-                } else {
-                    quote! {
-                        let v = #src * (10u32.pow(#e as u32) as #inner);
-                        v.into()
-                    }
+        match self {
+            ConvRate::Expo(s) => {
+                quote! {
+                    let e: i8 = #s;
+                    let v = if e < 0 {
+                        #src / (10u32.pow(e.abs() as u32) as #inner)
+                    } else {
+                        #src * (10u32.pow(e as u32) as #inner)
+                    };
+                    v.into()
                 }
             }
-            ConvRate::Real(rate) => quote! {
-                let v = #src * (#rate as #inner);
+            ConvRate::Real(s) => quote! {
+                let r = #s;
+                let v = #src * (r as #inner);
                 v.into()
             },
         }
@@ -122,10 +99,10 @@ impl ConOpt {
         attr.tokens
             .clone()
             .into_iter()
-            .flat_map(|t| match t {
+            .map(|t| match t {
                 TokenTree::Group(g) => {
                     let gr = g.stream().into_iter().collect();
-                    ConvRate::read_tokens(gr).into_iter()
+                    ConvRate::read_tokens(gr)
                 }
                 _ => panic!("Unexpected token: {:?}", t),
             })
@@ -146,25 +123,38 @@ mod tests {
     #[test]
     fn simple_impl() {
         let a = quote! {
-            #[convertible(Km ^ -3, Milli ^ 3, Cm = 100)]
+            #[convertible(Km ^ -3)]
+            #[convertible(Milli ^ 3)]
+            #[convertible(Cm = 100)]
             struct Meter(f64);
         };
         let b = quote! {
             impl Convertible<Cm> for Meter {
                 fn convert(&self) -> Cm {
-                    let v = self.0 * (100f64 as f64);
+                    let r = 100;
+                    let v = self.0 * (r as f64);
                     v.into()
                 }
             }
             impl Convertible<Km> for Meter {
                 fn convert(&self) -> Km {
-                    let v = self.0 / (10u32.pow((-3i8).abs() as u32) as f64);
+                    let e: i8 = -3;
+                    let v = if e < 0 {
+                        self.0 / (10u32.pow(e.abs() as u32) as f64)
+                    } else {
+                        self.0 * (10u32.pow(e as u32) as f64)
+                    };
                     v.into()
                 }
             }
             impl Convertible<Milli> for Meter {
                 fn convert(&self) -> Milli {
-                    let v = self.0 * (10u32.pow(3i8 as u32) as f64);
+                    let e: i8 = 3;
+                    let v = if e < 0 {
+                        self.0 / (10u32.pow(e.abs() as u32) as f64)
+                    } else {
+                        self.0 * (10u32.pow(e as u32) as f64)
+                    };
                     v.into()
                 }
             }
@@ -173,22 +163,44 @@ mod tests {
     }
 
     #[test]
-    fn write_empty() {
+    fn expressions() {
         let a = quote! {
-            struct MyUnit(f64);
+            #[convertible(Degree = 180.0 / core::f64::consts::PI)]
+            struct Radian(f64);
         };
         let b = quote! {
-            #[convertible]
-            struct MyUnit(f64);
+            impl Convertible<Degree> for Radian {
+                fn convert(&self) -> Degree {
+                    let r = 180.0 / core::f64::consts::PI;
+                    let v = self.0 * (r as f64);
+                    v.into()
+                }
+            }
         };
-        let c = quote! {
-            #[convertible()]
-            struct MyUnit(f64);
-        };
+        assert_eq!(convertible(a).to_string(), b.to_string());
+    }
 
-        assert!(convertible(a).to_string().is_empty());
-        assert!(convertible(b).to_string().is_empty());
-        assert!(convertible(c).to_string().is_empty());
+    #[test]
+    fn write_empty01() {
+        let s = convertible(quote! {
+            struct MyUnit(u8);
+        });
+        assert!(s.to_string().is_empty());
+
+        let s = convertible(quote! {
+            #[convertible]
+            struct MyUnit(u8);
+        });
+        assert!(s.to_string().is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read target name.")]
+    fn write_empty03() {
+        convertible(quote! {
+            #[convertible()]
+            struct MyUnit(u8);
+        });
     }
 
     #[test]
@@ -227,24 +239,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can not read number.")]
-    fn error_bad_number01() {
-        convertible(quote! {
-            #[convertible(a = b)]
-            struct MyUnit(u8);
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "UnknownValue(\"*2\")")]
-    fn error_bad_number02() {
-        convertible(quote! {
-            #[convertible(a = *2)]
-            struct MyUnit(u8);
-        });
-    }
-
-    #[test]
     #[should_panic(expected = "Can not read target name.")]
     fn error_bad_list01() {
         convertible(quote! {
@@ -258,15 +252,6 @@ mod tests {
     fn error_bad_list02() {
         convertible(quote! {
             #[convertible(,a = 2)]
-            struct MyUnit(u8);
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "Can not read target name.")]
-    fn error_bad_list03() {
-        convertible(quote! {
-            #[convertible(a = 2,,)]
             struct MyUnit(u8);
         });
     }
