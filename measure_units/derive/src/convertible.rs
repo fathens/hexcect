@@ -36,7 +36,7 @@ impl ConvRate {
     fn read_tokens(tokens: Vec<TokenTree>) -> HashMap<Ident, ConvRate> {
         let read_target = |token| match token {
             TokenTree::Ident(name) => name,
-            _ => panic!("Can not read target name"),
+            _ => panic!("Can not read target name."),
         };
 
         let read_conv = |token| match token {
@@ -45,13 +45,13 @@ impl ConvRate {
                 '=' => |s: &str| ConvRate::Real(f64::from_string(s).unwrap()),
                 c => panic!("Unsupported token: {}", c),
             },
-            _ => panic!("Can not read token"),
+            _ => panic!("Can not read token."),
         };
 
         let read_num = |token| match token {
             TokenTree::Literal(a) => Ok(a),
             TokenTree::Punct(a) => Err(a),
-            _ => panic!("Can not read number"),
+            _ => panic!("Can not read number."),
         };
 
         let mut result = HashMap::new();
@@ -59,12 +59,12 @@ impl ConvRate {
         let mut ts = tokens.into_iter();
         while let Some(first) = ts.next() {
             let target = read_target(first);
-            let mk_conv = read_conv(ts.next().expect("Can not read token"));
-            let rate = match read_num(ts.next().expect("Can not read number")) {
+            let mk_conv = read_conv(ts.next().expect("Can not read token."));
+            let rate = match read_num(ts.next().expect("Can not read number.")) {
                 Ok(l) => l.to_string(),
-                Err(p) => match read_num(ts.next().expect("Can not read number")) {
+                Err(p) => match read_num(ts.next().expect("Can not read number.")) {
                     Ok(l) => format!("{}{}", p.as_char(), l.to_string()),
-                    Err(_) => panic!("Can not read number"),
+                    Err(_) => panic!("Can not read number."),
                 },
             };
             result.insert(target, mk_conv(&rate));
@@ -189,5 +189,85 @@ mod tests {
         assert!(convertible(a).to_string().is_empty());
         assert!(convertible(b).to_string().is_empty());
         assert!(convertible(c).to_string().is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "MyUnit is not newtype struct.")]
+    fn error_non_newtype() {
+        convertible(quote! {
+            struct MyUnit(u8, u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read token.")]
+    fn error_bad_syntax() {
+        convertible(quote! {
+            #[convertible(a)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read token.")]
+    fn error_bad_token01() {
+        convertible(quote! {
+            #[convertible(a b)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Unsupported token: -")]
+    fn error_bad_token02() {
+        convertible(quote! {
+            #[convertible(a - b)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read number.")]
+    fn error_bad_number01() {
+        convertible(quote! {
+            #[convertible(a = b)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "UnknownValue(\"*2\")")]
+    fn error_bad_number02() {
+        convertible(quote! {
+            #[convertible(a = *2)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read target name.")]
+    fn error_bad_list01() {
+        convertible(quote! {
+            #[convertible(,)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read target name.")]
+    fn error_bad_list02() {
+        convertible(quote! {
+            #[convertible(,a = 2)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Can not read target name.")]
+    fn error_bad_list03() {
+        convertible(quote! {
+            #[convertible(a = 2,,)]
+            struct MyUnit(u8);
+        });
     }
 }
