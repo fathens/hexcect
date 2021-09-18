@@ -1,4 +1,4 @@
-use super::*;
+use crate::common::*;
 
 use proc_macro2::TokenStream;
 use quote::quote;

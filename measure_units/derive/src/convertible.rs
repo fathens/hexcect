@@ -1,13 +1,12 @@
-use super::*;
+use crate::common::*;
 
 use darling::FromMeta;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
 use std::collections::HashMap;
-use syn::{Attribute, DeriveInput};
 
 pub fn convertible(items: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse2(items).unwrap();
+    let ast: syn::DeriveInput = syn::parse2(items).unwrap();
     let option = ConOpt::read_from_derive_input(&ast);
     let name = ast.ident;
     let inner_type =
@@ -80,7 +79,7 @@ impl ConvRate {
         result
     }
 
-    fn convert(&self, inner: &Type, src: TokenStream) -> TokenStream {
+    fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
         match *self {
             ConvRate::Expo(e) => {
                 if e < 0 {
@@ -109,7 +108,7 @@ struct ConOpt {
 }
 
 impl ConOpt {
-    fn read_from_derive_input(ast: &DeriveInput) -> ConOpt {
+    fn read_from_derive_input(ast: &syn::DeriveInput) -> ConOpt {
         let convertible = ast
             .attrs
             .iter()
@@ -119,7 +118,7 @@ impl ConOpt {
         ConOpt { convertible }
     }
 
-    fn read_convertible(attr: &Attribute) -> HashMap<Ident, ConvRate> {
+    fn read_convertible(attr: &syn::Attribute) -> HashMap<Ident, ConvRate> {
         attr.tokens
             .clone()
             .into_iter()
@@ -171,5 +170,24 @@ mod tests {
             }
         };
         assert_eq!(convertible(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn write_empty() {
+        let a = quote! {
+            struct MyUnit(f64);
+        };
+        let b = quote! {
+            #[convertible]
+            struct MyUnit(f64);
+        };
+        let c = quote! {
+            #[convertible()]
+            struct MyUnit(f64);
+        };
+
+        assert!(convertible(a).to_string().is_empty());
+        assert!(convertible(b).to_string().is_empty());
+        assert!(convertible(c).to_string().is_empty());
     }
 }

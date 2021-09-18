@@ -1,17 +1,16 @@
 use measure_units::*;
-use measure_units_derive::*;
 
-use derive_more::{From, Into};
+use derive_more::From;
 
-#[derive(From, Into, Convertible)]
+#[derive(From, Convertible)]
 #[convertible(Meter = 0.001, Milli ^ -6)]
 struct Km(f64);
 
-#[derive(From, Into, Convertible)]
+#[derive(From, Convertible)]
 #[convertible(Km ^ 3, Milli ^ -3)]
 struct Meter(f64);
 
-#[derive(From, Into, Convertible)]
+#[derive(From, Convertible)]
 #[convertible(Km ^ 6, Meter = 1000)]
 struct Milli(f64);
 

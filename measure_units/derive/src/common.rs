@@ -1,14 +1,7 @@
-mod convertible;
-mod float_status;
-
-pub use convertible::*;
-pub use float_status::*;
-
-// ----------------------------------------------------------------
 use syn::{Data, Fields, Type};
 
 /// If `data` is a newtype, return the type it's wrapping.
-fn newtype_inner(data: &Data) -> Option<Type> {
+pub fn newtype_inner(data: &Data) -> Option<Type> {
     match *data {
         Data::Struct(ref s) => {
             match s.fields {
