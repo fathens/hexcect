@@ -47,7 +47,7 @@ where
     FloatStatus,
     Convertible,
 )]
-#[convertible(Degree = 180.0 / core::f64::consts::PI)]
+#[convertible(Degree = Degree::MODULO / Radian::MODULO)]
 pub struct Radian(f64);
 
 impl Angle<f64> for Radian {
@@ -67,7 +67,7 @@ impl Angle<f64> for Radian {
     FloatStatus,
     Convertible,
 )]
-#[convertible(Radian = core::f64::consts::PI / 180.0)]
+#[convertible(Radian = Radian::MODULO / Degree::MODULO)]
 pub struct Degree(f64);
 
 impl Angle<f64> for Degree {
