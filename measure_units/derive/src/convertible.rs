@@ -33,43 +33,39 @@ enum ConvRate {
 
 impl ConvRate {
     fn read_tokens(tokens: Vec<TokenTree>) -> (Ident, ConvRate) {
-        let read_target = |token| match token {
-            TokenTree::Ident(name) => name,
+        let mut ts = tokens.into_iter();
+
+        let target = match ts.next() {
+            Some(TokenTree::Ident(name)) => name,
             _ => panic!("Can not read target name."),
         };
 
-        let read_conv = |token| match token {
-            TokenTree::Punct(p) => match p.as_char() {
-                '^' => |s| ConvRate::Expo(s),
-                '=' => |s| ConvRate::Real(s),
+        let mk_conv = match ts.next() {
+            Some(TokenTree::Punct(p)) => match p.as_char() {
+                '^' => ConvRate::Expo,
+                '=' => ConvRate::Real,
                 c => panic!("Unsupported token: {}", c),
             },
             _ => panic!("Can not read token."),
         };
 
-        let mut ts = tokens.into_iter();
-
-        let target = read_target(ts.next().expect("Can not read target name."));
-        let mk_conv = read_conv(ts.next().expect("Can not read token."));
-
         let mut rate = TokenStream::new();
         rate.extend(ts);
+
         (target, mk_conv(rate))
     }
 
     fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
         match self {
-            ConvRate::Expo(s) => {
-                quote! {
-                    let e: i8 = #s;
-                    let v = if e < 0 {
-                        #src / (10u32.pow(e.abs() as u32) as #inner)
-                    } else {
-                        #src * (10u32.pow(e as u32) as #inner)
-                    };
-                    v.into()
-                }
-            }
+            ConvRate::Expo(s) => quote! {
+                let e: i8 = #s;
+                let v = if e < 0 {
+                    #src / (10u32.pow(e.abs() as u32) as #inner)
+                } else {
+                    #src * (10u32.pow(e as u32) as #inner)
+                };
+                v.into()
+            },
             ConvRate::Real(s) => quote! {
                 let r = #s;
                 let v = #src * (r as #inner);
@@ -90,23 +86,28 @@ impl ConOpt {
             .attrs
             .iter()
             .filter(|a| a.path.is_ident("convertible"))
-            .flat_map(|a| ConOpt::read_convertible(a).into_iter())
+            .map(ConOpt::read_convertible)
             .collect();
         ConOpt { convertible }
     }
 
-    fn read_convertible(attr: &syn::Attribute) -> HashMap<Ident, ConvRate> {
-        attr.tokens
+    fn read_convertible(attr: &syn::Attribute) -> (Ident, ConvRate) {
+        let gs: Vec<_> = attr
+            .tokens
             .clone()
             .into_iter()
             .map(|t| match t {
-                TokenTree::Group(g) => {
-                    let gr = g.stream().into_iter().collect();
-                    ConvRate::read_tokens(gr)
-                }
+                TokenTree::Group(g) => g,
                 _ => panic!("Unexpected token: {:?}", t),
             })
-            .collect()
+            .collect();
+
+        if let [g] = &gs[..] {
+            let gr = g.stream().into_iter().collect();
+            ConvRate::read_tokens(gr)
+        } else {
+            panic!("An argument must be supplied.");
+        }
     }
 
     fn convertible_sorted(&self) -> Vec<(&Ident, &ConvRate)> {
@@ -186,12 +187,15 @@ mod tests {
             struct MyUnit(u8);
         });
         assert!(s.to_string().is_empty());
+    }
 
-        let s = convertible(quote! {
+    #[test]
+    #[should_panic(expected = "An argument must be supplied.")]
+    fn write_empty02() {
+        convertible(quote! {
             #[convertible]
             struct MyUnit(u8);
         });
-        assert!(s.to_string().is_empty());
     }
 
     #[test]
@@ -252,6 +256,15 @@ mod tests {
     fn error_bad_list02() {
         convertible(quote! {
             #[convertible(,a = 2)]
+            struct MyUnit(u8);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "An argument must be supplied.")]
+    fn error_bad_list03() {
+        convertible(quote! {
+            #[convertible(a = 2)(b = 3)]
             struct MyUnit(u8);
         });
     }
