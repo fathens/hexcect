@@ -1,3 +1,4 @@
+mod calcmix;
 mod common;
 mod convertible;
 mod float_status;
@@ -12,4 +13,9 @@ pub fn derive_float_status(items: TokenStream) -> TokenStream {
 #[proc_macro_derive(Convertible, attributes(convertible))]
 pub fn drive_convertible(items: TokenStream) -> TokenStream {
     convertible::convertible(items.into()).into()
+}
+
+#[proc_macro_derive(CalcMix)]
+pub fn derive_calc_mix(items: TokenStream) -> TokenStream {
+    calcmix::derive(items.into()).into()
 }
