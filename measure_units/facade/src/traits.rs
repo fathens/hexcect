@@ -11,3 +11,13 @@ pub trait FloatStatus {
 pub trait Convertible<T> {
     fn convert(&self) -> T;
 }
+
+impl<A, B> Convertible<B> for A
+where
+    A: Copy,
+    A: Into<B>,
+{
+    fn convert(&self) -> B {
+        (*self).into()
+    }
+}
