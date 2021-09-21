@@ -6,29 +6,29 @@ use std::ops::{Add, Div, Mul, Sub};
 #[macro_use]
 mod local_macro {
     macro_rules! impl_froms {
-        ($t:ident<$ga:ident, $($g:ident),*> -> $($v:ident),+) => {
-            impl_froms!(@inner $t ($ga $(,$g)*) $(, $v)*);
+        ($t:ident<$ga:ident, $($g:ident),+> -> $vs:tt) => {
+            impl_froms!(@inner $t ($ga $(,$g)*) $vs);
         };
-        ($t:ident<$ga:ident> -> $($v:ident),+) => {
-            impl_froms!(@inner $t ($ga) $(, $v)*);
+        ($t:ident<$ga:ident> -> $vs:tt) => {
+            impl_froms!(@inner $t ($ga) $vs);
         };
-        ($t:ident -> $($v:ident),+) => {
-            impl_froms!(@inner $t () $(, $v)*);
+        ($t:ident -> $vs:tt) => {
+            impl_froms!(@inner $t () $vs);
         };
-        (@inner $t:ident $gs:tt, $($v:ident),+) => {
+        (@inner $t:ident $gs:tt ($($v:ident),+)) => {
             impl_froms!(@from $t $gs);
             $(impl_froms!(@into $t $v $gs);)*
         };
         (@from $t:ident ($($g:ident),*)) => {
             impl<V$(, $g)*> From<V> for $t<V$(, $g)*> {
-                fn from(v: V) -> $t<V$(, $g)*> {
+                fn from(v: V) -> Self {
                     Self(v, $(PhantomData::<$g>,)*)
                 }
             }
         };
         (@into $t:ident $v:ident ($($g:ident),*)) => {
             impl<$($g, )*> From<$t<$v, $($g,)*>> for $v {
-                fn from(a: $t<$v, $($g,)*>) -> $v {
+                fn from(a: $t<$v, $($g,)*>) -> Self {
                     a.0
                 }
             }
@@ -47,8 +47,9 @@ mod local_macro {
             where
                 $($g: CalcMix<V>,)*
             {
-                const UNIT_NAME: Lazy<String> =
-                    Lazy::new(|| $u);
+                fn unit_name() -> Lazy<String> {
+                    Lazy::new(|| $u)
+                }
             }
 
             impl<V$(, $g)*> Display for $t<V$(, $g)*>
@@ -60,7 +61,7 @@ mod local_macro {
             {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     let v: V = (*self).into();
-                    write!(f, "{}{}", v, *Self::UNIT_NAME)
+                    write!(f, "{}{}", v, *Self::unit_name())
                 }
             }
 
@@ -125,12 +126,27 @@ mod local_macro {
             }
         };
     }
+
+    macro_rules! impl_calcmix {
+        ($t:ident<$ga:ident, $($g:ident),+>, $vs:tt, $u:expr) => {
+            impl_froms!($t<$ga $(,$g)*> -> $vs);
+            impl_calcs!($t<$ga $(,$g)*>, $u);
+        };
+        ($t:ident<$ga:ident>, $vs:tt, $u:expr) => {
+            impl_froms!($t<$ga> -> $vs);
+            impl_calcs!($t<$ga>, $u);
+        };
+        ($t:ident, $vs:tt, $u:expr) => {
+            impl_froms!($t -> $vs);
+            impl_calcs!($t, $u);
+        };
+    }
 }
 
 // ================================================================
 
 pub trait CalcMix<V> {
-    const UNIT_NAME: Lazy<String>;
+    fn unit_name() -> Lazy<String>;
 
     fn calc_add(self, o: Self) -> Self
     where
@@ -183,25 +199,22 @@ pub trait CalcMix<V> {
 
 #[derive(Clone, Copy)]
 pub struct Scalar<V>(V);
-impl_froms!(Scalar -> f32, f64, i32, i64);
-impl_calcs!(Scalar, "".to_string());
+impl_calcmix!(Scalar, (f32, f64, i32, i64), "scalar_value".to_string());
 
 #[derive(Clone, Copy)]
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
-
-impl_froms!(UnitsMul<A, B> -> f32, f64, i32, i64);
-impl_calcs!(
+impl_calcmix!(
     UnitsMul<A, B>,
-    format!("{}{}", *A::UNIT_NAME, *B::UNIT_NAME)
+    (f32, f64, i32, i64),
+    format!("{}{}", *A::unit_name(), *B::unit_name())
 );
 
 #[derive(Clone, Copy)]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
-
-impl_froms!(UnitsDiv<A, B> -> f32, f64, i32, i64);
-impl_calcs!(
+impl_calcmix!(
     UnitsDiv<A, B>,
-    format!("{}/{}", *A::UNIT_NAME, *B::UNIT_NAME)
+    (f32, f64, i32, i64),
+    format!("{}/{}", *A::unit_name(), *B::unit_name())
 );
 
 // ================================================================
@@ -214,13 +227,17 @@ mod tests {
     #[derive(Clone, Copy, Into)]
     pub struct Meter(f64);
     impl CalcMix<f64> for Meter {
-        const UNIT_NAME: Lazy<String> = Lazy::new(|| "m".to_string());
+        fn unit_name() -> Lazy<String> {
+            Lazy::new(|| "m".to_string())
+        }
     }
 
     #[derive(Clone, Copy, Into)]
     pub struct Second(f64);
     impl CalcMix<f64> for Second {
-        const UNIT_NAME: Lazy<String> = Lazy::new(|| "s".to_string());
+        fn unit_name() -> Lazy<String> {
+            Lazy::new(|| "s".to_string())
+        }
     }
 
     #[test]
