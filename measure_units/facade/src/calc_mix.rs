@@ -5,12 +5,12 @@ use std::ops::{Add, Sub};
 
 #[macro_use]
 mod local_macro {
-    macro_rules! impl_into {
+    macro_rules! impl_from {
         ($t:ident, $($v:ident),+) => {
             $(
-                impl<A, B> Into<$v> for $t<$v, A, B> {
-                    fn into(self) -> $v {
-                        self.0
+                impl<A, B> From<$t<$v, A, B>> for $v {
+                    fn from(a: $t<$v, A, B>) -> $v {
+                        a.0
                     }
                 }
             )*
@@ -27,7 +27,7 @@ pub trait CalcMix<V> {
 #[derive(Clone, Copy)]
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
-impl_into!(UnitsMul, f32, f64, i32, i64);
+impl_from!(UnitsMul, f32, f64, i32, i64);
 
 impl<V, A, B> From<V> for UnitsMul<V, A, B> {
     fn from(a: V) -> Self {
@@ -48,8 +48,8 @@ where
 impl<V, A, B> Display for UnitsMul<V, A, B>
 where
     V: Display,
+    V: From<Self>,
     Self: Copy,
-    Self: Into<V>,
     Self: CalcMix<V>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -61,7 +61,7 @@ where
 impl<V, A, B> Add for UnitsMul<V, A, B>
 where
     V: Add,
-    Self: Into<V>,
+    V: From<Self>,
     Self: From<V::Output>,
 {
     type Output = Self;
@@ -76,7 +76,7 @@ where
 impl<V, A, B> Sub for UnitsMul<V, A, B>
 where
     V: Sub,
-    Self: Into<V>,
+    V: From<Self>,
     Self: From<V::Output>,
 {
     type Output = Self;
@@ -93,7 +93,7 @@ where
 #[derive(Clone, Copy)]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
-impl_into!(UnitsDiv, f32, f64, i32, i64);
+impl_from!(UnitsDiv, f32, f64, i32, i64);
 
 impl<V, A, B> From<V> for UnitsDiv<V, A, B> {
     fn from(a: V) -> Self {
@@ -114,8 +114,8 @@ where
 impl<V, A, B> Display for UnitsDiv<V, A, B>
 where
     V: Display,
+    V: From<Self>,
     Self: Copy,
-    Self: Into<V>,
     Self: CalcMix<V>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -127,7 +127,7 @@ where
 impl<V, A, B> Add for UnitsDiv<V, A, B>
 where
     V: Add,
-    Self: Into<V>,
+    V: From<Self>,
     Self: From<V::Output>,
 {
     type Output = Self;
@@ -142,7 +142,7 @@ where
 impl<V, A, B> Sub for UnitsDiv<V, A, B>
 where
     V: Sub,
-    Self: Into<V>,
+    V: From<Self>,
     Self: From<V::Output>,
 {
     type Output = Self;
