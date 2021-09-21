@@ -15,6 +15,7 @@ mod local_macro {
         ($t:ident -> $vs:tt) => {
             impl_froms!(@inner $t () $vs);
         };
+
         (@inner $t:ident $gs:tt ($($v:ident),+)) => {
             impl_froms!(@from $t $gs);
             $(impl_froms!(@into $t $v $gs);)*
@@ -36,35 +37,13 @@ mod local_macro {
     }
 
     macro_rules! impl_calcs {
-        ($t:ident<$($g:ident),*>, $u:expr) => {
-            impl_calcs!(@inner $t, $u $(,$g)*);
+        ($t:ident<$($g:ident),*>) => {
+            impl_calcs!(@inner $t $(,$g)*);
         };
-        ($t:ident, $u:expr) => {
-            impl_calcs!(@inner $t, $u, );
+        ($t:ident) => {
+            impl_calcs!(@inner $t, );
         };
-        (@inner $t:ident, $u:expr, $($g:ident),*) => {
-            impl<V$(, $g)*> CalcMix<V> for $t<V$(, $g)*>
-            where
-                $($g: CalcMix<V>,)*
-            {
-                fn unit_name() -> Lazy<String> {
-                    Lazy::new(|| $u)
-                }
-            }
-
-            impl<V$(, $g)*> Display for $t<V$(, $g)*>
-            where
-                V: Display,
-                V: From<Self>,
-                Self: Copy,
-                Self: CalcMix<V>,
-            {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    let v: V = (*self).into();
-                    write!(f, "{}{}", v, *Self::unit_name())
-                }
-            }
-
+        (@inner $t:ident, $($g:ident),*) => {
             impl<V$(, $g)*, O> Add<O> for $t<V$(, $g)*>
             where
                 V: Add,
@@ -129,17 +108,44 @@ mod local_macro {
 
     macro_rules! impl_calcmix {
         ($t:ident<$ga:ident, $($g:ident),+>, $vs:tt, $u:expr) => {
+            impl_calcmix!(@inner $t, ($ga $(,$g)*), $u);
             impl_froms!($t<$ga $(,$g)*> -> $vs);
-            impl_calcs!($t<$ga $(,$g)*>, $u);
+            impl_calcs!($t<$ga $(,$g)*>);
         };
         ($t:ident<$ga:ident>, $vs:tt, $u:expr) => {
+            impl_calcmix!(@inner $t, ($ga), $u);
             impl_froms!($t<$ga> -> $vs);
-            impl_calcs!($t<$ga>, $u);
+            impl_calcs!($t<$ga>);
         };
         ($t:ident, $vs:tt, $u:expr) => {
+            impl_calcmix!(@inner $t, (), $u);
             impl_froms!($t -> $vs);
-            impl_calcs!($t, $u);
+            impl_calcs!($t);
         };
+
+        (@inner $t:ident, ($($g:ident),*), $u:expr) => {
+            impl<V$(, $g)*> CalcMix<V> for $t<V$(, $g)*>
+            where
+                $($g: CalcMix<V>,)*
+            {
+                fn unit_name() -> Lazy<String> {
+                    Lazy::new(|| $u)
+                }
+            }
+
+            impl<V$(, $g)*> Display for $t<V$(, $g)*>
+            where
+                V: Display,
+                V: From<Self>,
+                Self: Copy,
+                Self: CalcMix<V>,
+            {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let v: V = (*self).into();
+                    write!(f, "{}{}", v, *Self::unit_name())
+                }
+            }
+        }
     }
 }
 
