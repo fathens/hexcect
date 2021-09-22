@@ -9,7 +9,10 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
+          override: true
+          default: true
+          components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v1
 
