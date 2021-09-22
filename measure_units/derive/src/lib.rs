@@ -15,7 +15,7 @@ pub fn drive_convertible(items: TokenStream) -> TokenStream {
     convertible::convertible(items.into()).into()
 }
 
-#[proc_macro_derive(CalcMix)]
+#[proc_macro_derive(CalcMix, attributes(calcmix))]
 pub fn derive_calc_mix(items: TokenStream) -> TokenStream {
     calcmix::derive(items.into()).into()
 }
