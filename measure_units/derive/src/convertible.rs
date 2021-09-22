@@ -13,10 +13,10 @@ pub fn convertible(items: TokenStream) -> TokenStream {
 
     let mut ts = TokenStream::new();
     for (target, cr) in option.convertible_sorted() {
-        let conv = cr.convert(&inner_type, quote! { self.0 });
+        let conv = cr.convert(&inner_type, quote! { src.0 });
         ts.extend(quote! {
-            impl Convertible<#target> for #name {
-                fn convert(&self) -> #target {
+            impl From<#name> for #target {
+                fn from(src: #name) -> #target {
                     #conv
                 }
             }
@@ -130,31 +130,31 @@ mod tests {
             struct Meter(f64);
         };
         let b = quote! {
-            impl Convertible<Cm> for Meter {
-                fn convert(&self) -> Cm {
+            impl From<Meter> for Cm {
+                fn from(src: Meter) -> Cm {
                     let r = 100;
-                    let v = self.0 * (r as f64);
+                    let v = src.0 * (r as f64);
                     v.into()
                 }
             }
-            impl Convertible<Km> for Meter {
-                fn convert(&self) -> Km {
+            impl From<Meter> for Km {
+                fn from(src: Meter) -> Km {
                     let e: i8 = -3;
                     let v = if e < 0 {
-                        self.0 / (10u32.pow(e.abs() as u32) as f64)
+                        src.0 / (10u32.pow(e.abs() as u32) as f64)
                     } else {
-                        self.0 * (10u32.pow(e as u32) as f64)
+                        src.0 * (10u32.pow(e as u32) as f64)
                     };
                     v.into()
                 }
             }
-            impl Convertible<Milli> for Meter {
-                fn convert(&self) -> Milli {
+            impl From<Meter> for Milli {
+                fn from(src: Meter) -> Milli {
                     let e: i8 = 3;
                     let v = if e < 0 {
-                        self.0 / (10u32.pow(e.abs() as u32) as f64)
+                        src.0 / (10u32.pow(e.abs() as u32) as f64)
                     } else {
-                        self.0 * (10u32.pow(e as u32) as f64)
+                        src.0 * (10u32.pow(e as u32) as f64)
                     };
                     v.into()
                 }
@@ -170,10 +170,10 @@ mod tests {
             struct Radian(f64);
         };
         let b = quote! {
-            impl Convertible<Degree> for Radian {
-                fn convert(&self) -> Degree {
+            impl From<Radian> for Degree {
+                fn from(src: Radian) -> Degree {
                     let r = 180.0 / core::f64::consts::PI;
-                    let v = self.0 * (r as f64);
+                    let v = src.0 * (r as f64);
                     v.into()
                 }
             }

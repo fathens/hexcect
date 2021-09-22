@@ -1,4 +1,4 @@
-use crate::{Convertible, FloatStatus};
+use crate::FloatStatus;
 use measure_units_derive::*;
 
 use derive_more::{From, Into};
@@ -82,8 +82,8 @@ mod tests {
     #[test]
     fn convert() {
         let a = Degree::from(90.0);
-        let b: Radian = a.convert();
-        let c: Degree = b.convert();
+        let b: Radian = a.into();
+        let c: Degree = b.into();
         assert_eq!(b.0, a.0.to_radians());
         assert_eq!(c.0, b.0.to_degrees());
     }
