@@ -699,10 +699,28 @@ fn error_no_arg() {
 }
 
 #[test]
+#[should_panic(expected = "An attribute 'calcmix' must be supplied.")]
+fn error_no_attr() {
+    derive(quote! {
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
 #[should_panic(expected = "An argument must be supplied.")]
 fn error_bad_args() {
     derive(quote! {
         #[calcmix(into = [])(unit_name = "a".to_string())]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "An attribute 'calcmix' must be supplied.")]
+fn error_bad_attrs() {
+    derive(quote! {
+        #[calcmix(into = [])]
+        #[calcmix(unit_name = "a".to_string())]
         struct Bad<V>(V);
     });
 }

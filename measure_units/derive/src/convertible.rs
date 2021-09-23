@@ -2,7 +2,7 @@ use crate::common::*;
 
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::Peekable};
 
 pub fn convertible(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
@@ -32,27 +32,21 @@ enum ConvRate {
 }
 
 impl ConvRate {
-    fn read_tokens(tokens: Vec<TokenTree>) -> (Ident, ConvRate) {
-        let mut ts = tokens.into_iter();
-
-        let target = match ts.next() {
-            Some(TokenTree::Ident(name)) => name,
-            _ => panic!("Can not read target name."),
-        };
-
-        let mk_conv = match ts.next() {
-            Some(TokenTree::Punct(p)) => match p.as_char() {
-                '^' => ConvRate::Expo,
-                '=' => ConvRate::Real,
+    fn read_tokens<I>(ts: &mut Peekable<I>) -> (Ident, ConvRate)
+    where
+        I: Iterator<Item = TokenTree>,
+    {
+        if let Some((target, c, tokens)) = read_expr(ts, None) {
+            let rate = TokenStream::from_iter(tokens);
+            let conv = match c {
+                '^' => ConvRate::Expo(rate),
+                '=' => ConvRate::Real(rate),
                 c => panic!("Unsupported token: {}", c),
-            },
-            _ => panic!("Can not read token."),
-        };
-
-        let mut rate = TokenStream::new();
-        rate.extend(ts);
-
-        (target, mk_conv(rate))
+            };
+            (target, conv)
+        } else {
+            panic!("Can not read target name.");
+        }
     }
 
     fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
@@ -92,22 +86,7 @@ impl ConOpt {
     }
 
     fn read_convertible(attr: &syn::Attribute) -> (Ident, ConvRate) {
-        let gs: Vec<_> = attr
-            .tokens
-            .clone()
-            .into_iter()
-            .map(|t| match t {
-                TokenTree::Group(g) => g,
-                _ => panic!("Unexpected token: {:?}", t),
-            })
-            .collect();
-
-        if let [g] = &gs[..] {
-            let gr = g.stream().into_iter().collect();
-            ConvRate::read_tokens(gr)
-        } else {
-            panic!("An argument must be supplied.");
-        }
+        ConvRate::read_tokens(&mut read_attr_args(attr.clone()).peekable())
     }
 
     fn convertible_sorted(&self) -> Vec<(&Ident, &ConvRate)> {
@@ -216,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can not read token.")]
+    #[should_panic(expected = "Unsupported token ")]
     fn error_bad_syntax() {
         convertible(quote! {
             #[convertible(a)]
@@ -225,7 +204,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can not read token.")]
+    #[should_panic(expected = "Unsupported token ")]
     fn error_bad_token01() {
         convertible(quote! {
             #[convertible(a b)]

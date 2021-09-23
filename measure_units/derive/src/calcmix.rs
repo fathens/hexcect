@@ -1,9 +1,8 @@
 use crate::common::*;
 
 use darling::*;
-use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, TokenStream};
 use quote::quote;
-use std::iter::Peekable;
 
 pub fn derive(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
@@ -251,99 +250,38 @@ struct Attr {
 
 impl Attr {
     fn read(attrs: &[syn::Attribute]) -> Attr {
-        if let Some(attr) = attrs.iter().find(|a| a.path.is_ident("calcmix")) {
+        let ats: Vec<_> = attrs
+            .iter()
+            .filter(|a| a.path.is_ident("calcmix"))
+            .collect();
+
+        if let [attr] = &ats[..] {
             Attr::read_attrs(attr)
         } else {
-            panic!("`unit_name` must be specified.");
+            panic!("An attribute 'calcmix' must be supplied.");
         }
     }
 
     fn read_attrs(attr: &syn::Attribute) -> Attr {
-        let gs: Vec<_> = attr
-            .tokens
-            .clone()
-            .into_iter()
-            .map(|t| match t {
-                TokenTree::Group(g) => g,
-                _ => panic!("Unexpected token: {:?}", t),
-            })
-            .collect();
+        let mut ts = read_attr_args(attr.clone()).peekable();
 
-        if let [g] = &gs[..] {
-            let mut ts = g.stream().into_iter().peekable();
-
-            let into = read_agroup("into", &mut ts).map(|g| {
-                skip_comma(&mut ts);
-                if g.delimiter() != Delimiter::Bracket {
-                    panic!("Expect '[' and ']' but {}", g);
-                }
-                read_array(&mut g.stream().into_iter())
-            });
-
-            let mut unit_name = TokenStream::new();
-            unit_name.extend(read_expr("unit_name", &mut ts).expect("`unit_name` is required."));
-            Attr { into, unit_name }
-        } else {
-            panic!("An argument must be supplied.");
-        }
-    }
-}
-
-fn skip_comma<I>(ts: &mut I)
-where
-    I: Iterator<Item = TokenTree>,
-{
-    match ts.next() {
-        Some(TokenTree::Punct(p)) if p.as_char() == ',' => (),
-        Some(a) => panic!("Unexpected token: {:?}", a),
-        None => (),
-    }
-}
-
-fn read_array<I>(ts: &mut I) -> Vec<syn::Ident>
-where
-    I: Iterator<Item = TokenTree>,
-{
-    let mut result = Vec::new();
-    while let Some(TokenTree::Ident(ty)) = ts.next() {
-        result.push(ty);
-        skip_comma(ts);
-    }
-    result
-}
-
-fn read_agroup<I>(key: &str, ts: &mut Peekable<I>) -> Option<Group>
-where
-    I: Iterator<Item = TokenTree>,
-{
-    match ts.peek() {
-        Some(TokenTree::Ident(name)) if name == key => {
-            ts.next();
-            match ts.next() {
-                Some(TokenTree::Punct(p)) if p.as_char() == '=' => match ts.next() {
-                    Some(TokenTree::Group(g)) => Some(g),
-                    a => panic!("Expect a group but {:?}", a),
-                },
-                a => panic!("Expect `=` but {:?}", a),
+        let into = read_agroup("into", &mut ts).map(|g| {
+            skip_comma(&mut ts);
+            if g.delimiter() != Delimiter::Bracket {
+                panic!("Expect '[' and ']' but {}", g);
             }
-        }
-        _ => None,
-    }
-}
+            read_array(&mut g.stream().into_iter())
+        });
 
-fn read_expr<I>(key: &str, ts: &mut Peekable<I>) -> Option<Vec<TokenTree>>
-where
-    I: Iterator<Item = TokenTree>,
-{
-    match ts.peek() {
-        Some(TokenTree::Ident(name)) if name == key => {
-            ts.next();
-            match ts.next() {
-                Some(TokenTree::Punct(p)) if p.as_char() == '=' => Some(ts.collect()),
-                a => panic!("Expect `=` but {:?}", a),
+        let unit_name = TokenStream::from_iter({
+            let (_, c, tokens) =
+                read_expr(&mut ts, Some("unit_name")).expect("`unit_name` is required.");
+            if c != '=' {
+                panic!("Expect '=' but {:?}", c);
             }
-        }
-        _ => None,
+            tokens
+        });
+        Attr { into, unit_name }
     }
 }
 
