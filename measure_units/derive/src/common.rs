@@ -62,19 +62,18 @@ pub fn newtype_with_phantoms(data: &Data) -> Option<(Type, Vec<Type>)> {
 }
 
 pub fn read_attr_args(attr: syn::Attribute) -> impl Iterator<Item = TokenTree> {
-    let gs: Vec<_> = attr
-        .tokens
-        .into_iter()
-        .map(|t| match t {
-            TokenTree::Group(g) => g,
-            _ => panic!("Unexpected token: {:?}", t),
-        })
-        .collect();
+    let mut gs = attr.tokens.into_iter().map(|t| match t {
+        TokenTree::Group(g) => g,
+        _ => panic!("Unexpected token: {:?}", t),
+    });
 
-    if let [g] = &gs[..] {
+    if let Some(g) = gs.next() {
+        if gs.next().is_some() {
+            panic!("Only one argument must be supplied.");
+        }
         g.stream().into_iter()
     } else {
-        panic!("An argument must be supplied.");
+        panic!("Least one argument must be supplied.");
     }
 }
 

@@ -7,7 +7,7 @@ use quote::quote;
 pub fn derive(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
     let opt = StructOpt::from_derive_input(&ast).unwrap();
-    let attr = Attr::read(&ast.attrs);
+    let attr = Attr::read(ast.attrs);
     let name = ast.ident;
     let (inner_type, phantoms) = newtype_with_phantoms(&ast.data)
         .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
@@ -249,21 +249,21 @@ struct Attr {
 }
 
 impl Attr {
-    fn read(attrs: &[syn::Attribute]) -> Attr {
-        let ats: Vec<_> = attrs
-            .iter()
-            .filter(|a| a.path.is_ident("calcmix"))
-            .collect();
+    fn read(attrs: Vec<syn::Attribute>) -> Attr {
+        let mut ats = attrs.into_iter().filter(|a| a.path.is_ident("calcmix"));
 
-        if let [attr] = &ats[..] {
-            Attr::read_attrs(attr)
+        if let Some(a) = ats.next() {
+            if ats.next().is_some() {
+                panic!("Only one attribute 'calcmix' must be supplied.");
+            }
+            Attr::read_attrs(a)
         } else {
-            panic!("An attribute 'calcmix' must be supplied.");
+            panic!("Least one attribute 'calcmix' must be supplied.");
         }
     }
 
-    fn read_attrs(attr: &syn::Attribute) -> Attr {
-        let mut ts = read_attr_args(attr.clone()).peekable();
+    fn read_attrs(attr: syn::Attribute) -> Attr {
+        let mut ts = read_attr_args(attr).peekable();
 
         let into = read_agroup("into", &mut ts).map(|g| {
             skip_comma(&mut ts);

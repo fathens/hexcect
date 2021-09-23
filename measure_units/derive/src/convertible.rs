@@ -6,8 +6,8 @@ use std::{collections::HashMap, iter::Peekable};
 
 pub fn convertible(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
-    let option = ConOpt::read_from_derive_input(&ast);
     let name = ast.ident;
+    let option = ConOpt::read_from_derive_input(ast.attrs);
     let inner_type =
         newtype_inner(&ast.data).unwrap_or_else(|| panic!("{} is not newtype struct.", name));
 
@@ -36,17 +36,16 @@ impl ConvRate {
     where
         I: Iterator<Item = TokenTree>,
     {
-        if let Some((target, c, tokens)) = read_expr(ts, None) {
-            let rate = TokenStream::from_iter(tokens);
-            let conv = match c {
-                '^' => ConvRate::Expo(rate),
-                '=' => ConvRate::Real(rate),
-                c => panic!("Unsupported token: {}", c),
-            };
-            (target, conv)
-        } else {
+        let (target, c, tokens) = read_expr(ts, None).unwrap_or_else(|| {
             panic!("Can not read target name.");
-        }
+        });
+        let rate = TokenStream::from_iter(tokens);
+        let conv = match c {
+            '^' => ConvRate::Expo(rate),
+            '=' => ConvRate::Real(rate),
+            c => panic!("Unsupported token: {}", c),
+        };
+        (target, conv)
     }
 
     fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
@@ -75,18 +74,18 @@ struct ConOpt {
 }
 
 impl ConOpt {
-    fn read_from_derive_input(ast: &syn::DeriveInput) -> ConOpt {
-        let convertible = ast
-            .attrs
-            .iter()
+    fn read_from_derive_input(attrs: Vec<syn::Attribute>) -> ConOpt {
+        let convertible = attrs
+            .into_iter()
             .filter(|a| a.path.is_ident("convertible"))
             .map(ConOpt::read_convertible)
             .collect();
         ConOpt { convertible }
     }
 
-    fn read_convertible(attr: &syn::Attribute) -> (Ident, ConvRate) {
-        ConvRate::read_tokens(&mut read_attr_args(attr.clone()).peekable())
+    fn read_convertible(attr: syn::Attribute) -> (Ident, ConvRate) {
+        let mut ts = read_attr_args(attr).peekable();
+        ConvRate::read_tokens(&mut ts)
     }
 
     fn convertible_sorted(&self) -> Vec<(&Ident, &ConvRate)> {
@@ -169,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "An argument must be supplied.")]
+    #[should_panic(expected = "Least one argument must be supplied.")]
     fn write_empty02() {
         convertible(quote! {
             #[convertible]
@@ -240,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "An argument must be supplied.")]
+    #[should_panic(expected = "Only one argument must be supplied.")]
     fn error_bad_list03() {
         convertible(quote! {
             #[convertible(a = 2)(b = 3)]

@@ -690,7 +690,7 @@ fn error_bad_token() {
 }
 
 #[test]
-#[should_panic(expected = "An argument must be supplied.")]
+#[should_panic(expected = "Least one argument must be supplied.")]
 fn error_no_arg() {
     derive(quote! {
         #[calcmix]
@@ -699,7 +699,7 @@ fn error_no_arg() {
 }
 
 #[test]
-#[should_panic(expected = "An attribute 'calcmix' must be supplied.")]
+#[should_panic(expected = "Least one attribute 'calcmix' must be supplied.")]
 fn error_no_attr() {
     derive(quote! {
         struct Bad<V>(V);
@@ -707,7 +707,7 @@ fn error_no_attr() {
 }
 
 #[test]
-#[should_panic(expected = "An argument must be supplied.")]
+#[should_panic(expected = "Only one argument must be supplied.")]
 fn error_bad_args() {
     derive(quote! {
         #[calcmix(into = [])(unit_name = "a".to_string())]
@@ -716,7 +716,7 @@ fn error_bad_args() {
 }
 
 #[test]
-#[should_panic(expected = "An attribute 'calcmix' must be supplied.")]
+#[should_panic(expected = "Only one attribute 'calcmix' must be supplied.")]
 fn error_bad_attrs() {
     derive(quote! {
         #[calcmix(into = [])]
