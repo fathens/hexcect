@@ -1,7 +1,7 @@
 use crate::common::*;
 
 use darling::*;
-use proc_macro2::{Group, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
 use quote::quote;
 use std::iter::Peekable;
 
@@ -13,50 +13,59 @@ pub fn derive(items: TokenStream) -> TokenStream {
     let (inner_type, phantoms) = newtype_with_phantoms(&ast.data)
         .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
     let ginner = generics_inner(&inner_type, &opt.generics);
-    let mut ts = TokenStream::new();
-    ts.extend(impl_froms(
+
+    let froms = impl_froms(
         &name,
         &inner_type,
-        &ginner,
+        ginner,
         &opt.generics,
         &phantoms,
-        &attr.into,
-    ));
-    ts.extend(impl_calcmix(
+        attr.into,
+    );
+    let cmix = impl_calcmix(
         &name,
         &inner_type,
-        &ginner,
+        ginner,
         &opt.generics,
-        phantoms,
-        attr.unit_name,
-    ));
-    ts.extend(impl_calcs(&name, &inner_type, &opt.generics));
-    ts
+        &phantoms,
+        &attr.unit_name,
+    );
+    let calcs = impl_calcs(&name, &inner_type, &opt.generics);
+
+    TokenStream::from_iter([froms, cmix, calcs])
 }
 
-fn is_eq(a: &syn::TypeParam, b: &syn::Type) -> bool {
-    a.to_token_stream().to_string() == b.to_token_stream().to_string()
+fn is_eq<'a>(gp: &'a syn::GenericParam, ty: &syn::Type) -> Option<&'a syn::TypeParam> {
+    match gp {
+        syn::GenericParam::Type(g) => match ty {
+            syn::Type::Path(t) => match t.path.segments.last() {
+                Some(s) if s.ident == g.ident => Some(g),
+                _ => None,
+            },
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
-fn generics_inner(inner_type: &syn::Type, generics: &syn::Generics) -> Option<syn::TypeParam> {
+fn generics_inner<'a>(
+    inner_type: &syn::Type,
+    generics: &'a syn::Generics,
+) -> Option<&'a syn::TypeParam> {
     generics
         .params
         .iter()
-        .flat_map(|g| match g {
-            syn::GenericParam::Type(t) if is_eq(t, inner_type) => Some(t),
-            _ => None,
-        })
+        .flat_map(|g| is_eq(g, inner_type))
         .next()
-        .cloned()
 }
 
 fn impl_calcmix(
     name: &syn::Ident,
     inner_type: &syn::Type,
-    ginner: &Option<syn::TypeParam>,
+    ginner: Option<&syn::TypeParam>,
     generics: &syn::Generics,
-    mut phantoms: Vec<syn::Type>,
-    unit_name: TokenStream,
+    phantoms: &[syn::Type],
+    unit_name: &TokenStream,
 ) -> TokenStream {
     let gv = match ginner {
         Some(gi) => quote! {
@@ -66,19 +75,13 @@ fn impl_calcmix(
         None => quote! {},
     };
 
-    let gs = {
-        let subs = generics.params.iter().filter(|g| match g {
-            syn::GenericParam::Type(t) => phantoms.iter_mut().any(|a| is_eq(t, a)),
-            _ => false,
-        });
-        let mut t = TokenStream::new();
-        for g in subs {
-            t.extend(quote! {
-                #g: CalcMix<#inner_type>,
-            });
-        }
-        t
-    };
+    let gs = TokenStream::from_iter(
+        generics
+            .params
+            .iter()
+            .filter(|g| phantoms.iter().any(|a| is_eq(g, a).is_some()))
+            .map(|g| quote! { #g: CalcMix<#inner_type>, }),
+    );
 
     quote! {
         impl #generics CalcMix<#inner_type> for #name #generics
@@ -172,16 +175,18 @@ fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generic
 fn impl_froms(
     name: &syn::Ident,
     inner_type: &syn::Type,
-    ginner: &Option<syn::TypeParam>,
+    ginner: Option<&syn::TypeParam>,
     generics: &syn::Generics,
     phantoms: &[syn::Type],
-    into_types: &[syn::Ident],
+    into_types: Option<Vec<syn::Ident>>,
 ) -> TokenStream {
     let args = {
         let mut q = quote! { v };
-        for p in phantoms {
-            q.extend(quote! { , std::marker::PhantomData::<#p> });
-        }
+        q.extend(phantoms.iter().map(|p| {
+            quote! {
+                , std::marker::PhantomData::<#p>
+            }
+        }));
         q
     };
     let mut base = quote! {
@@ -191,24 +196,25 @@ fn impl_froms(
             }
         }
     };
-    for gi in ginner {
-        let gs = {
-            let qs: Vec<_> = generics
+
+    if let Some(gi) = ginner {
+        let target_types = into_types.unwrap_or_else(|| {
+            vec!["f32", "f64", "i32", "i64"]
+                .iter()
+                .map(|a| syn::Ident::from_string(a).unwrap())
+                .collect()
+        });
+        let gs = TokenStream::from_iter(
+            generics
                 .params
                 .iter()
                 .filter(|g| match g {
                     syn::GenericParam::Type(t) => t.ident != gi.ident,
                     _ => false,
                 })
-                .map(|g| quote! { #g, })
-                .collect();
-            let mut t = TokenStream::new();
-            if !qs.is_empty() {
-                t.extend(qs);
-            }
-            t
-        };
-        for ty in into_types {
+                .map(|g| quote! { #g, }),
+        );
+        for ty in target_types {
             base.extend(quote! {
                 impl<#gs> From<#name<#ty, #gs>> for #ty {
                     fn from(a: #name<#ty, #gs>) -> Self {
@@ -217,6 +223,17 @@ fn impl_froms(
                 }
             });
         }
+    } else {
+        if into_types.is_some() {
+            panic!("Unable to specify types for non-generic typed struct.");
+        }
+        base.extend(quote! {
+            impl From<#name> for #inner_type {
+                fn from(a: #name) -> Self {
+                    a.0
+                }
+            }
+        });
     }
     base
 }
@@ -228,7 +245,7 @@ struct StructOpt {
 
 #[derive(Debug)]
 struct Attr {
-    into: Vec<syn::Ident>,
+    into: Option<Vec<syn::Ident>>,
     unit_name: TokenStream,
 }
 
@@ -255,16 +272,13 @@ impl Attr {
         if let [g] = &gs[..] {
             let mut ts = g.stream().into_iter().peekable();
 
-            let into = match read_agroup("into", &mut ts) {
-                Some(g) => {
-                    skip_comma(&mut ts);
-                    read_array(&mut g.stream().into_iter())
+            let into = read_agroup("into", &mut ts).map(|g| {
+                skip_comma(&mut ts);
+                if g.delimiter() != Delimiter::Bracket {
+                    panic!("Expect '[' and ']' but {}", g);
                 }
-                None => vec!["f32", "f64", "i32", "i64"]
-                    .iter()
-                    .map(|a| syn::Ident::from_string(a).unwrap())
-                    .collect(),
-            };
+                read_array(&mut g.stream().into_iter())
+            });
 
             let mut unit_name = TokenStream::new();
             unit_name.extend(read_expr("unit_name", &mut ts).expect("`unit_name` is required."));
@@ -281,8 +295,8 @@ where
 {
     match ts.next() {
         Some(TokenTree::Punct(p)) if p.as_char() == ',' => (),
+        Some(a) => panic!("Unexpected token: {:?}", a),
         None => (),
-        a => panic!("Unexpected token: {:?}", a),
     }
 }
 

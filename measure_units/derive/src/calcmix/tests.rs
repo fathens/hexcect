@@ -15,6 +15,12 @@ fn with_single() {
             }
         }
 
+        impl From<Km> for f64 {
+            fn from(a: Km) -> Self {
+                a.0
+            }
+        }
+
         impl CalcMix<f64> for Km
         where
         {
@@ -627,4 +633,76 @@ fn with_mix_conc2() {
         }
     };
     assert_eq!(derive(a).to_string(), b.to_string());
+}
+
+#[test]
+#[should_panic(expected = "Expect '[' and ']' but ")]
+fn error_bad_list01() {
+    derive(quote! {
+        #[calcmix(into = (f32))]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "`unit_name` is required.")]
+fn error_ok_list02() {
+    derive(quote! {
+        #[calcmix(into = [])]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "Unable to specify types")]
+fn error_bad_into01() {
+    derive(quote! {
+        #[calcmix(into = [f32], unit_name = "a".to_string())]
+        struct Bad(f32);
+    });
+}
+
+#[test]
+#[should_panic(expected = "Unable to specify types")]
+fn error_bad_into02() {
+    derive(quote! {
+        #[calcmix(into = [f32], unit_name = "a".to_string())]
+        struct Bad(f64);
+    });
+}
+
+#[test]
+#[should_panic(expected = "Unexpected token: ")]
+fn error_no_token() {
+    derive(quote! {
+        #[calcmix(into = [] unit_name = "a".to_string())]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "Unexpected token: ")]
+fn error_bad_token() {
+    derive(quote! {
+        #[calcmix(into = []; unit_name = "a".to_string())]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "An argument must be supplied.")]
+fn error_no_arg() {
+    derive(quote! {
+        #[calcmix]
+        struct Bad<V>(V);
+    });
+}
+
+#[test]
+#[should_panic(expected = "An argument must be supplied.")]
+fn error_bad_args() {
+    derive(quote! {
+        #[calcmix(into = [])(unit_name = "a".to_string())]
+        struct Bad<V>(V);
+    });
 }
