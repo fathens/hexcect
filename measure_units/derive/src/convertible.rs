@@ -7,22 +7,28 @@ use std::{collections::HashMap, iter::Peekable};
 pub fn convertible(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
     let name = ast.ident;
-    let option = ConOpt::read_from_derive_input(ast.attrs);
     let inner_type =
         newtype_inner(&ast.data).unwrap_or_else(|| panic!("{} is not newtype struct.", name));
+    let gs = &ast.generics;
+    let option = ConOpt::read_from_derive_input(ast.attrs);
 
-    let mut ts = TokenStream::new();
-    for (target, cr) in option.convertible_sorted() {
+    TokenStream::from_iter(option.convertible_sorted().into_iter().map(|(target, cr)| {
         let conv = cr.convert(&inner_type, quote! { src.0 });
-        ts.extend(quote! {
-            impl From<#name> for #target {
-                fn from(src: #name) -> #target {
+        quote! {
+            impl #gs From<#name #gs> for #target #gs
+            where
+                #inner_type: std::ops::Mul,
+                #inner_type: std::ops::Div,
+                #inner_type: From<f64>,
+                #target #gs: From<<#inner_type as std::ops::Mul>::Output>,
+                #target #gs: From<<#inner_type as std::ops::Div>::Output>,
+            {
+                fn from(src: #name #gs) -> #target #gs {
                     #conv
                 }
             }
-        });
-    }
-    ts
+        }
+    }))
 }
 
 #[derive(Debug)]
@@ -51,17 +57,25 @@ impl ConvRate {
     fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
         match self {
             ConvRate::Expo(s) => quote! {
-                let e: i8 = #s;
-                let v = if e < 0 {
-                    #src / (10u32.pow(e.abs() as u32) as #inner)
-                } else {
-                    #src * (10u32.pow(e as u32) as #inner)
-                };
+                let s: i8 = #s;
+                let s_f: f64 = 10u32.pow(s.abs() as u32).into();
+                let r: #inner = s_f.into();
+                let a: #inner = #src;
+                let v = if s.is_negative() { a / r } else { a * r };
                 v.into()
             },
             ConvRate::Real(s) => quote! {
-                let r = #s;
-                let v = #src * (r as #inner);
+                let s = #s;
+                let s_f: f64 = s.into();
+                if s_f == 0.0 {
+                    panic!("Using Zero as a rate !");
+                }
+                if !(s_f < 0.0) && !(0.0 < s_f) {
+                    panic!("Using NaN as a rate !");
+                }
+                let r: #inner = s_f.into();
+                let a: #inner = #src;
+                let v = a * r;
                 v.into()
             },
         }
@@ -108,32 +122,60 @@ mod tests {
             struct Meter(f64);
         };
         let b = quote! {
-            impl From<Meter> for Cm {
+            impl From<Meter> for Cm
+            where
+                f64: std::ops::Mul,
+                f64: std::ops::Div,
+                f64: From<f64>,
+                Cm: From<<f64 as std::ops::Mul>::Output>,
+                Cm: From<<f64 as std::ops::Div>::Output>,
+            {
                 fn from(src: Meter) -> Cm {
-                    let r = 100;
-                    let v = src.0 * (r as f64);
+                    let s = 100;
+                    let s_f: f64 = s.into();
+                    if s_f == 0.0 {
+                        panic!("Using Zero as a rate !");
+                    }
+                    if !(s_f < 0.0) && !(0.0 < s_f) {
+                        panic!("Using NaN as a rate !");
+                    }
+                    let r: f64 = s_f.into();
+                    let a: f64 = src.0;
+                    let v = a * r;
                     v.into()
                 }
             }
-            impl From<Meter> for Km {
+            impl From<Meter> for Km
+            where
+                f64: std::ops::Mul,
+                f64: std::ops::Div,
+                f64: From<f64>,
+                Km: From<<f64 as std::ops::Mul>::Output>,
+                Km: From<<f64 as std::ops::Div>::Output>,
+            {
                 fn from(src: Meter) -> Km {
-                    let e: i8 = -3;
-                    let v = if e < 0 {
-                        src.0 / (10u32.pow(e.abs() as u32) as f64)
-                    } else {
-                        src.0 * (10u32.pow(e as u32) as f64)
-                    };
+                    let s: i8 = -3;
+                    let s_f: f64 = 10u32.pow(s.abs() as u32).into();
+                    let r: f64 = s_f.into();
+                    let a: f64 = src.0;
+                    let v = if s.is_negative() { a / r } else { a * r };
                     v.into()
                 }
             }
-            impl From<Meter> for Milli {
+            impl From<Meter> for Milli
+            where
+                f64: std::ops::Mul,
+                f64: std::ops::Div,
+                f64: From<f64>,
+                Milli: From<<f64 as std::ops::Mul>::Output>,
+                Milli: From<<f64 as std::ops::Div>::Output>,
+            {
                 fn from(src: Meter) -> Milli {
-                    let e: i8 = 3;
-                    let v = if e < 0 {
-                        src.0 / (10u32.pow(e.abs() as u32) as f64)
-                    } else {
-                        src.0 * (10u32.pow(e as u32) as f64)
-                    };
+                    let s: i8 = 3;
+                    let s_f: f64 = 10u32.pow(s.abs() as u32).into();
+                    let r: f64 = s_f.into();
+                    let a: f64 = src.0;
+                    let v = if s.is_negative() { a / r } else { a * r };
                     v.into()
                 }
             }
@@ -148,10 +190,60 @@ mod tests {
             struct Radian(f64);
         };
         let b = quote! {
-            impl From<Radian> for Degree {
+            impl From<Radian> for Degree
+            where
+                f64: std::ops::Mul,
+                f64: std::ops::Div,
+                f64: From<f64>,
+                Degree: From<<f64 as std::ops::Mul>::Output>,
+                Degree: From<<f64 as std::ops::Div>::Output>,
+            {
                 fn from(src: Radian) -> Degree {
-                    let r = 180.0 / core::f64::consts::PI;
-                    let v = src.0 * (r as f64);
+                    let s = 180.0 / core::f64::consts::PI;
+                    let s_f: f64 = s.into();
+                    if s_f == 0.0 {
+                        panic!("Using Zero as a rate !");
+                    }
+                    if !(s_f < 0.0) && !(0.0 < s_f) {
+                        panic!("Using NaN as a rate !");
+                    }
+                    let r: f64 = s_f.into();
+                    let a: f64 = src.0;
+                    let v = a * r;
+                    v.into()
+                }
+            }
+        };
+        assert_eq!(convertible(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn generics() {
+        let a = quote! {
+            #[convertible(Minute = 1.0/60.0)]
+            struct Second<V>(V);
+        };
+        let b = quote! {
+            impl <V> From<Second <V> > for Minute<V>
+            where
+                V: std::ops::Mul,
+                V: std::ops::Div,
+                V: From<f64>,
+                Minute<V>: From<<V as std::ops::Mul>::Output>,
+                Minute<V>: From<<V as std::ops::Div>::Output>,
+            {
+                fn from(src: Second<V>) -> Minute<V> {
+                    let s = 1.0/60.0;
+                    let s_f: f64 = s.into();
+                    if s_f == 0.0 {
+                        panic!("Using Zero as a rate !");
+                    }
+                    if !(s_f < 0.0) && !(0.0 < s_f) {
+                        panic!("Using NaN as a rate !");
+                    }
+                    let r: V = s_f.into();
+                    let a: V = src.0;
+                    let v = a * r;
                     v.into()
                 }
             }
