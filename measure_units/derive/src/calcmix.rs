@@ -6,18 +6,17 @@ use quote::quote;
 
 pub fn derive(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
-    let opt = StructOpt::from_derive_input(&ast).unwrap();
     let attr = Attr::read(ast.attrs);
     let name = ast.ident;
     let (inner_type, phantoms) = newtype_with_phantoms(&ast.data)
         .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
-    let ginner = generics_inner(&inner_type, &opt.generics);
+    let ginner = generics_inner(&inner_type, &ast.generics);
 
     let froms = impl_froms(
         &name,
         &inner_type,
         ginner,
-        &opt.generics,
+        &ast.generics,
         &phantoms,
         attr.into,
     );
@@ -25,11 +24,11 @@ pub fn derive(items: TokenStream) -> TokenStream {
         &name,
         &inner_type,
         ginner,
-        &opt.generics,
+        &ast.generics,
         &phantoms,
         &attr.unit_name,
     );
-    let calcs = impl_calcs(&name, &inner_type, &opt.generics);
+    let calcs = impl_calcs(&name, &inner_type, &ast.generics);
 
     TokenStream::from_iter([froms, cmix, calcs])
 }
@@ -235,11 +234,6 @@ fn impl_froms(
         });
     }
     base
-}
-
-#[derive(Debug, FromDeriveInput)]
-struct StructOpt {
-    generics: syn::Generics,
 }
 
 #[derive(Debug)]
