@@ -1,4 +1,4 @@
-use measure_units_derive::*;
+use measure_units::*;
 
 use derive_more::From;
 
