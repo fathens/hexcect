@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-pub fn float_status(items: TokenStream) -> TokenStream {
+pub fn derive(items: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse2(items).unwrap();
     let name = ast.ident;
     if newtype_inner(&ast.data).is_none() {
@@ -43,6 +43,6 @@ mod tests {
                 fn is_sign_negative(&self) -> bool { self.0.is_sign_negative() }
             }
         };
-        assert_eq!(float_status(a).to_string(), b.to_string());
+        assert_eq!(derive(a).to_string(), b.to_string());
     }
 }

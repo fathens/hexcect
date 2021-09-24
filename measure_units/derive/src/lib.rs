@@ -7,12 +7,12 @@ use proc_macro::TokenStream;
 
 #[proc_macro_derive(FloatStatus)]
 pub fn derive_float_status(items: TokenStream) -> TokenStream {
-    float_status::float_status(items.into()).into()
+    float_status::derive(items.into()).into()
 }
 
 #[proc_macro_derive(Convertible, attributes(convertible))]
 pub fn drive_convertible(items: TokenStream) -> TokenStream {
-    convertible::convertible(items.into()).into()
+    convertible::derive(items.into()).into()
 }
 
 #[proc_macro_derive(CalcMix, attributes(calcmix))]

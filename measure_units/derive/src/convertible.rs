@@ -4,7 +4,7 @@ use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
 use std::{collections::HashMap, iter::Peekable};
 
-pub fn convertible(items: TokenStream) -> TokenStream {
+pub fn derive(items: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(items).unwrap();
     let name = ast.ident;
     let inner_type =
@@ -180,7 +180,7 @@ mod tests {
                 }
             }
         };
-        assert_eq!(convertible(a).to_string(), b.to_string());
+        assert_eq!(derive(a).to_string(), b.to_string());
     }
 
     #[test]
@@ -214,7 +214,7 @@ mod tests {
                 }
             }
         };
-        assert_eq!(convertible(a).to_string(), b.to_string());
+        assert_eq!(derive(a).to_string(), b.to_string());
     }
 
     #[test]
@@ -248,12 +248,12 @@ mod tests {
                 }
             }
         };
-        assert_eq!(convertible(a).to_string(), b.to_string());
+        assert_eq!(derive(a).to_string(), b.to_string());
     }
 
     #[test]
     fn write_empty01() {
-        let s = convertible(quote! {
+        let s = derive(quote! {
             struct MyUnit(u8);
         });
         assert!(s.to_string().is_empty());
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Least one argument must be supplied.")]
     fn write_empty02() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible]
             struct MyUnit(u8);
         });
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Can not read target name.")]
     fn write_empty03() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible()]
             struct MyUnit(u8);
         });
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "MyUnit is not newtype struct.")]
     fn error_non_newtype() {
-        convertible(quote! {
+        derive(quote! {
             struct MyUnit(u8, u8);
         });
     }
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Unsupported token ")]
     fn error_bad_syntax() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(a)]
             struct MyUnit(u8);
         });
@@ -297,7 +297,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Unsupported token ")]
     fn error_bad_token01() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(a b)]
             struct MyUnit(u8);
         });
@@ -306,7 +306,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Unsupported token: -")]
     fn error_bad_token02() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(a - b)]
             struct MyUnit(u8);
         });
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Can not read target name.")]
     fn error_bad_list01() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(,)]
             struct MyUnit(u8);
         });
@@ -324,7 +324,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Can not read target name.")]
     fn error_bad_list02() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(,a = 2)]
             struct MyUnit(u8);
         });
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Only one argument must be supplied.")]
     fn error_bad_list03() {
-        convertible(quote! {
+        derive(quote! {
             #[convertible(a = 2)(b = 3)]
             struct MyUnit(u8);
         });
