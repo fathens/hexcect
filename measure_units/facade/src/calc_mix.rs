@@ -4,11 +4,6 @@ use std::lazy::Lazy;
 use std::marker::PhantomData;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[macro_use]
-mod local_macro {}
-
-// ================================================================
-
 pub trait CalcMix<V> {
     fn unit_name() -> Lazy<String>;
 
@@ -62,39 +57,74 @@ pub trait CalcMix<V> {
 // ================================================================
 
 #[derive(Clone, Copy, CalcMix)]
-#[calcmix(unit_name = "scalar_value".to_string())]
+#[calcmix(unit_name = "".to_string())]
 pub struct Scalar<V>(V);
 
 #[derive(Clone, Copy, CalcMix)]
 #[calcmix(unit_name = format!("{}{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
+impl<V, A, B> UnitsMul<V, A, B> {
+    /// A * B = B * A
+    pub fn commutative(self) -> UnitsMul<V, B, A> {
+        self.0.into()
+    }
+}
+
+impl<V, A, B> UnitsMul<V, UnitsDiv<V, A, B>, B>
+where
+    A: From<V>,
+{
+    /// A/B * B = A
+    pub fn reduction(self) -> A {
+        self.0.into()
+    }
+}
+
 #[derive(Clone, Copy, CalcMix)]
 #[calcmix(unit_name = format!("{}/{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
+
+impl<V, A> UnitsDiv<V, A, A> {
+    /// A / A = Scalar
+    pub fn reduction(self) -> Scalar<V> {
+        self.0.into()
+    }
+}
+
+impl<V, A, B> UnitsDiv<V, UnitsMul<V, A, B>, B>
+where
+    A: From<V>,
+{
+    /// A * B / B = A
+    pub fn reduction_right(self) -> A {
+        self.0.into()
+    }
+}
+
+impl<V, A, B> UnitsDiv<V, UnitsMul<V, A, B>, A>
+where
+    B: From<V>,
+{
+    /// A * B / A = B
+    pub fn reduction_left(self) -> B {
+        self.0.into()
+    }
+}
 
 // ================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use derive_more::Into;
 
-    #[derive(Clone, Copy, Into)]
+    #[derive(Clone, Copy, CalcMix)]
+    #[calcmix(unit_name = "m".to_string())]
     pub struct Meter(f64);
-    impl CalcMix<f64> for Meter {
-        fn unit_name() -> Lazy<String> {
-            Lazy::new(|| "m".to_string())
-        }
-    }
 
-    #[derive(Clone, Copy, Into)]
+    #[derive(Clone, Copy, CalcMix)]
+    #[calcmix(unit_name = "s".to_string())]
     pub struct Second(f64);
-    impl CalcMix<f64> for Second {
-        fn unit_name() -> Lazy<String> {
-            Lazy::new(|| "s".to_string())
-        }
-    }
 
     #[test]
     fn simple_add() {
@@ -112,5 +142,80 @@ mod tests {
         let c = a - b;
         assert_eq!(c.0, -2.3);
         assert_eq!(c.to_string(), "-2.3m/s");
+    }
+
+    #[test]
+    fn commutative() {
+        let d = Meter::from(10.0);
+        let t = Second::from(2.0);
+        let g = d * t;
+        assert_eq!(g.0, 20.0);
+        assert_eq!(g.to_string(), "20ms");
+
+        let r = g.commutative();
+        assert_eq!(r.0, 20.0);
+        assert_eq!(r.to_string(), "20sm");
+    }
+
+    #[test]
+    fn reduction_mul() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let speed = distance / time;
+        let goal = speed * takes;
+        assert_eq!(goal.0, 15.0);
+        assert_eq!(goal.to_string(), "15m/ss");
+
+        let s = goal.reduction();
+        assert_eq!(s.0, 15.0);
+        assert_eq!(s.to_string(), "15m");
+    }
+
+    #[test]
+    fn reduction_div() {
+        let a = Second::from(3.0);
+        let b = Second::from(1.5);
+
+        let c = a / b;
+        assert_eq!(c.0, 2.0);
+        assert_eq!(c.to_string(), "2s/s");
+
+        let s = c.reduction();
+        assert_eq!(s.0, 2.0);
+        assert_eq!(s.to_string(), "2");
+    }
+
+    #[test]
+    fn reduction_right() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = distance * takes;
+        let b = a / time;
+        assert_eq!(b.0, 15.0);
+        assert_eq!(b.to_string(), "15ms/s");
+
+        let s = b.reduction_right();
+        assert_eq!(s.0, 15.0);
+        assert_eq!(s.to_string(), "15m");
+    }
+
+    #[test]
+    fn reduction_left() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = takes * distance;
+        let b = a / time;
+        assert_eq!(b.0, 15.0);
+        assert_eq!(b.to_string(), "15sm/s");
+
+        let s = b.reduction_left();
+        assert_eq!(s.0, 15.0);
+        assert_eq!(s.to_string(), "15m");
     }
 }
