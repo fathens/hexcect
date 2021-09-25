@@ -19,3 +19,8 @@ pub fn drive_convertible(items: TokenStream) -> TokenStream {
 pub fn derive_calc_mix(items: TokenStream) -> TokenStream {
     calcmix::derive(items.into()).into()
 }
+
+#[proc_macro]
+pub fn simplify(items: TokenStream) -> TokenStream {
+    calcmix::simplify(items.into()).into()
+}

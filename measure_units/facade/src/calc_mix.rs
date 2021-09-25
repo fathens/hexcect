@@ -71,6 +71,16 @@ impl<V, A, B> UnitsMul<V, A, B> {
     }
 }
 
+impl<V, A> UnitsMul<V, A, Scalar<V>>
+where
+    A: From<V>,
+{
+    /// A * Scalar = A
+    pub fn scalar(self) -> A {
+        self.0.into()
+    }
+}
+
 impl<V, A, B> UnitsMul<V, UnitsDiv<V, A, B>, B>
 where
     A: From<V>,
@@ -88,6 +98,16 @@ pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 impl<V, A> UnitsDiv<V, A, A> {
     /// A / A = Scalar
     pub fn reduction(self) -> Scalar<V> {
+        self.0.into()
+    }
+}
+
+impl<V, A> UnitsDiv<V, A, Scalar<V>>
+where
+    A: From<V>,
+{
+    /// A / Scalar = A
+    pub fn scalar(self) -> A {
         self.0.into()
     }
 }
