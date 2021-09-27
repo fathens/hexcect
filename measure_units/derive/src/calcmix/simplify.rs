@@ -111,43 +111,55 @@ impl Mixed {
     }
 
     fn simplify(self) -> (Mixed, TokenStream) {
+        use Mixed::*;
+
+        let box_mul = |a, b| Box::new(Mul(a, b));
+        let box_div = |a, b| Box::new(Div(a, b));
+
+        let next_more = |mut ts: TokenStream, a: Mixed| {
+            let (next, more) = a.simplify();
+            ts.extend(more);
+            (next, ts)
+        };
+
         match self {
-            Mixed::Mul(a, b) => {
-                if *b == Mixed::Scalar {
-                    let mut ts = quote! { .scalar() };
-                    let (next, more) = a.simplify();
-                    ts.extend(more);
-                    (next, ts)
-                } else if *a == Mixed::Scalar {
-                    let mut ts = quote! { .commutative() };
-                    let next = Mixed::Mul(b, a);
-                    let (next, more) = next.simplify();
-                    ts.extend(more);
-                    (next, ts)
+            Mul(a, b) => {
+                if *b == Scalar {
+                    next_more(quote! { .scalar() }, *a)
+                } else if *a == Scalar {
+                    next_more(quote! { .commutative().scalar() }, *b)
                 } else {
                     match (*a, *b) {
-                        (Mixed::Div(x, y), b) if *y == b => {
-                            let mut ts = quote! { .reduction() };
-                            let (next, more) = x.simplify();
-                            ts.extend(more);
-                            (next, ts)
-                        }
-                        (a, Mixed::Div(x, y)) if *y == a => {
-                            let mut ts = quote! { .commutative() };
-                            let next = Mixed::Mul(Box::new(Mixed::Div(x, y)), Box::new(a));
-                            let (next, more) = next.simplify();
-                            ts.extend(more);
-                            (next, ts)
+                        (Div(x, y), b) if *y == b => next_more(quote! { .reduction() }, *x),
+                        (a, Div(x, y)) if *y == a => {
+                            next_more(quote! { .commutative().reduction() }, *x)
                         }
                         (left, right) => {
                             let (next_left, more_left) = left.simplify();
                             let (next_right, more_right) = right.simplify();
 
                             let mut ts = TokenStream::new();
-                            let next = Mixed::Mul(Box::new(next_left), Box::new(next_right));
+                            let mk_next = |a, b| Mul(Box::new(a), Box::new(b));
 
                             if more_left.is_empty() && more_right.is_empty() {
-                                (next, ts)
+                                match (next_left, next_right) {
+                                    (Mul(a, b), Div(c, d)) if *b == *d => next_more(
+                                        quote! { .associative() },
+                                        Mul(a, box_mul(b, box_div(c, d))),
+                                    ),
+                                    (Mul(a, b), Div(c, d)) if *a == *d => next_more(
+                                        quote! {
+                                            .inner_left(|a| a.commutative())
+                                                .associative()
+                                        },
+                                        Mul(b, box_mul(a, box_div(c, d))),
+                                    ),
+                                    (Div(a, b), Mul(c, d)) if *d == *a || *d == *b => next_more(
+                                        quote! { .commutative() },
+                                        Mul(box_mul(c, d), box_div(a, b)),
+                                    ),
+                                    (a, b) => (mk_next(a, b), ts),
+                                }
                             } else {
                                 if !more_left.is_empty() {
                                     ts.extend(quote! {
@@ -159,7 +171,7 @@ impl Mixed {
                                         .inner_right(|a| a #more_right)
                                     });
                                 }
-                                let (next, more) = next.simplify();
+                                let (next, more) = mk_next(next_left, next_right).simplify();
                                 ts.extend(more);
                                 (next, ts)
                             }
@@ -167,34 +179,21 @@ impl Mixed {
                     }
                 }
             }
-            Mixed::Div(a, b) => {
+            Div(a, b) => {
                 if a == b {
-                    (Mixed::Scalar, quote! { .reduction() })
-                } else if *b == Mixed::Scalar {
-                    let mut ts = quote! { .scalar() };
-                    let (next, more) = a.simplify();
-                    ts.extend(more);
-                    (next, ts)
+                    (Scalar, quote! { .reduction() })
+                } else if *b == Scalar {
+                    next_more(quote! { .scalar() }, *a)
                 } else {
                     match *a {
-                        Mixed::Mul(x, y) if y == b => {
-                            let mut ts = quote! { .reduction_right() };
-                            let (next, more) = x.simplify();
-                            ts.extend(more);
-                            (next, ts)
-                        }
-                        Mixed::Mul(x, y) if x == b => {
-                            let mut ts = quote! { .reduction_left() };
-                            let (next, more) = y.simplify();
-                            ts.extend(more);
-                            (next, ts)
-                        }
+                        Mul(x, y) if y == b => next_more(quote! { .reduction_right() }, *x),
+                        Mul(x, y) if x == b => next_more(quote! { .reduction_left() }, *y),
                         left => {
                             let (next_left, more_left) = left.simplify();
                             let (next_right, more_right) = (*b).simplify();
 
                             let mut ts = TokenStream::new();
-                            let next = Mixed::Div(Box::new(next_left), Box::new(next_right));
+                            let next = Div(Box::new(next_left), Box::new(next_right));
 
                             if more_left.is_empty() && more_right.is_empty() {
                                 (next, ts)
@@ -209,16 +208,14 @@ impl Mixed {
                                         .inner_right(|a| a #more_right)
                                     });
                                 }
-                                let (next, more) = next.simplify();
-                                ts.extend(more);
-                                (next, ts)
+                                next_more(ts, next)
                             }
                         }
                     }
                 }
             }
-            Mixed::Single(a) => (Mixed::Single(a), TokenStream::new()),
-            Mixed::Scalar => (Mixed::Scalar, TokenStream::new()),
+            Single(a) => (Single(a), TokenStream::new()),
+            Scalar => (Scalar, TokenStream::new()),
         }
     }
 }
@@ -401,6 +398,8 @@ mod tests {
                           a.inner_right (|a|
                                          a.reduction_left ()
                           )
+            ).associative().inner_right(|a|
+                                        a.commutative().reduction()
             )
         };
         assert_eq!(simplify(a).to_string(), b.to_string());

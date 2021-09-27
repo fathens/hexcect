@@ -109,3 +109,31 @@ fn simplify_div_reduction_left() {
     assert_eq!(a.to_string(), "1.5ms/m");
     assert_eq!(b.to_string(), "1.5s");
 }
+
+#[test]
+fn simplify_inner() {
+    let a = (Meter::from(1_f64)
+        / ((Meter::from(1_f64) * Second::from(1_f64)) / Meter::from(1_f64)))
+        * ((((Meter::from(1_f64) * Second::from(1_f64)) / Meter::from(1_f64))
+            / (Meter::from(1_f64)
+                / (Second::from(1_f64) * (Meter::from(1_f64) / Second::from(1_f64)))))
+            * Second::from(1_f64));
+    let b = simplify!(
+        a: UnitsMul<
+            f64,
+            UnitsDiv<f64, Meter, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>,
+            UnitsMul<
+                f64,
+                UnitsDiv<
+                    f64,
+                    UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>,
+                    UnitsDiv<f64, Meter, UnitsMul<f64, Second, UnitsDiv<f64, Meter, Second>>>,
+                >,
+                Second,
+            >,
+        >
+    )
+    .commutative();
+    assert_eq!(a.to_string(), "1m/ms/mms/m/m/sm/ss");
+    assert_eq!(b.to_string(), "1ms");
+}

@@ -65,11 +65,6 @@ pub struct Scalar<V>(V);
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
 impl<V, A, B> UnitsMul<V, A, B> {
-    /// A * B = B * A
-    pub fn commutative(self) -> UnitsMul<V, B, A> {
-        self.0.into()
-    }
-
     pub fn inner_right<C>(self, f: impl Fn(B) -> C) -> UnitsMul<V, A, C>
     where
         V: Copy,
@@ -85,6 +80,21 @@ impl<V, A, B> UnitsMul<V, A, B> {
         A: From<V>,
     {
         let _c: C = f(self.0.into());
+        self.0.into()
+    }
+
+    /// A * B = B * A
+    pub fn commutative(self) -> UnitsMul<V, B, A> {
+        self.0.into()
+    }
+}
+
+impl<V, A, B, C> UnitsMul<V, UnitsMul<V, A, B>, C>
+where
+    A: From<V>,
+{
+    /// (A * B) * C = A * (B * C)
+    pub fn associative(self) -> UnitsMul<V, A, UnitsMul<V, B, C>> {
         self.0.into()
     }
 }
@@ -213,6 +223,20 @@ mod tests {
         let r = g.commutative();
         assert_eq!(r.0, 20.0);
         assert_eq!(r.to_string(), "20sm");
+    }
+
+    #[test]
+    fn associative() {
+        let d = Meter::from(10.0);
+        let t = Second::from(2.0);
+        let o = Meter::from(3.0);
+        let g: UnitsMul<f64, UnitsMul<f64, Meter, Second>, Meter> = d * t * o;
+        assert_eq!(g.0, 60.0);
+        assert_eq!(g.to_string(), "60msm");
+
+        let r: UnitsMul<f64, Meter, UnitsMul<f64, Second, Meter>> = g.associative();
+        assert_eq!(r.0, 60.0);
+        assert_eq!(r.to_string(), "60msm");
     }
 
     #[test]
