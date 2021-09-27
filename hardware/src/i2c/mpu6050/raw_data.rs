@@ -39,8 +39,8 @@ pub enum GyroFullScale {
 
 impl GyroFullScale {
     pub fn max(&self) -> f64 {
-        let s = 1 << (*self as u8);
-        250.0 * s as f64
+        let s = 250 << (*self as u8);
+        s as f64
     }
 }
 
@@ -69,7 +69,7 @@ pub enum AccelFullScale {
 
 impl AccelFullScale {
     pub fn max(&self) -> f64 {
-        let s = 1 << (*self as u8 + 1);
+        let s = 2 << (*self as u8);
         s as f64
     }
 }
