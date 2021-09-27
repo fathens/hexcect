@@ -1,5 +1,3 @@
-// use crate::common::*;
-
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
 
@@ -9,7 +7,7 @@ pub fn simplify(items: TokenStream) -> TokenStream {
     let src = take_src(&mut tokens);
     let g = parse_type(tokens);
     let mixed = Mixed::parse(g);
-    let ts = mixed.simplify();
+    let (_, ts) = mixed.simplify();
 
     quote! {
         #src #ts
@@ -112,65 +110,115 @@ impl Mixed {
         }
     }
 
-    fn simplify(self) -> TokenStream {
-        let empty = || TokenStream::new();
-
+    fn simplify(self) -> (Mixed, TokenStream) {
         match self {
             Mixed::Mul(a, b) => {
                 if *b == Mixed::Scalar {
                     let mut ts = quote! { .scalar() };
-                    ts.extend(a.simplify());
-                    ts
+                    let (next, more) = a.simplify();
+                    ts.extend(more);
+                    (next, ts)
                 } else if *a == Mixed::Scalar {
                     let mut ts = quote! { .commutative() };
                     let next = Mixed::Mul(b, a);
-                    ts.extend(next.simplify());
-                    ts
+                    let (next, more) = next.simplify();
+                    ts.extend(more);
+                    (next, ts)
                 } else {
                     match (*a, *b) {
                         (Mixed::Div(x, y), b) if *y == b => {
                             let mut ts = quote! { .reduction() };
-                            ts.extend(x.simplify());
-                            ts
+                            let (next, more) = x.simplify();
+                            ts.extend(more);
+                            (next, ts)
                         }
                         (a, Mixed::Div(x, y)) if *y == a => {
                             let mut ts = quote! { .commutative() };
                             let next = Mixed::Mul(Box::new(Mixed::Div(x, y)), Box::new(a));
-                            ts.extend(next.simplify());
-                            ts
+                            let (next, more) = next.simplify();
+                            ts.extend(more);
+                            (next, ts)
                         }
-                        _ => empty(),
+                        (left, right) => {
+                            let (next_left, more_left) = left.simplify();
+                            let (next_right, more_right) = right.simplify();
+
+                            let mut ts = TokenStream::new();
+                            let next = Mixed::Mul(Box::new(next_left), Box::new(next_right));
+
+                            if more_left.is_empty() && more_right.is_empty() {
+                                (next, ts)
+                            } else {
+                                if !more_left.is_empty() {
+                                    ts.extend(quote! {
+                                        .inner_left(|a| a #more_left)
+                                    });
+                                }
+                                if !more_right.is_empty() {
+                                    ts.extend(quote! {
+                                        .inner_right(|a| a #more_right)
+                                    });
+                                }
+                                let (next, more) = next.simplify();
+                                ts.extend(more);
+                                (next, ts)
+                            }
+                        }
                     }
                 }
             }
             Mixed::Div(a, b) => {
                 if a == b {
-                    quote! { .reduction() }
+                    (Mixed::Scalar, quote! { .reduction() })
                 } else if *b == Mixed::Scalar {
                     let mut ts = quote! { .scalar() };
-                    ts.extend(a.simplify());
-                    ts
+                    let (next, more) = a.simplify();
+                    ts.extend(more);
+                    (next, ts)
                 } else {
                     match *a {
-                        Mixed::Mul(x, y) => {
-                            if y == b {
-                                let mut ts = quote! { .reduction_right() };
-                                ts.extend(x.simplify());
-                                ts
-                            } else if x == b {
-                                let mut ts = quote! { .reduction_left() };
-                                ts.extend(y.simplify());
-                                ts
+                        Mixed::Mul(x, y) if y == b => {
+                            let mut ts = quote! { .reduction_right() };
+                            let (next, more) = x.simplify();
+                            ts.extend(more);
+                            (next, ts)
+                        }
+                        Mixed::Mul(x, y) if x == b => {
+                            let mut ts = quote! { .reduction_left() };
+                            let (next, more) = y.simplify();
+                            ts.extend(more);
+                            (next, ts)
+                        }
+                        left => {
+                            let (next_left, more_left) = left.simplify();
+                            let (next_right, more_right) = (*b).simplify();
+
+                            let mut ts = TokenStream::new();
+                            let next = Mixed::Div(Box::new(next_left), Box::new(next_right));
+
+                            if more_left.is_empty() && more_right.is_empty() {
+                                (next, ts)
                             } else {
-                                empty()
+                                if !more_left.is_empty() {
+                                    ts.extend(quote! {
+                                        .inner_left(|a| a #more_left)
+                                    });
+                                }
+                                if !more_right.is_empty() {
+                                    ts.extend(quote! {
+                                        .inner_right(|a| a #more_right)
+                                    });
+                                }
+                                let (next, more) = next.simplify();
+                                ts.extend(more);
+                                (next, ts)
                             }
                         }
-                        _ => empty(),
                     }
                 }
             }
-            Mixed::Single(_) => empty(),
-            Mixed::Scalar => empty(),
+            Mixed::Single(a) => (Mixed::Single(a), TokenStream::new()),
+            Mixed::Scalar => (Mixed::Scalar, TokenStream::new()),
         }
     }
 }
@@ -263,6 +311,97 @@ mod tests {
         };
         let b = quote! {
             src.reduction_left()
+        };
+        assert_eq!(simplify(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn mul_inner_right_div_reduction_left() {
+        let a = quote! {
+            src: UnitsMul<f64, Second, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>
+        };
+        let b = quote! {
+            src.inner_right(|a| a.reduction_left())
+        };
+        assert_eq!(simplify(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn mul_inner_left_div_reduction_left() {
+        let a = quote! {
+            src: UnitsMul<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Second>
+        };
+        let b = quote! {
+            src.inner_left(|a| a.reduction_left())
+        };
+        assert_eq!(simplify(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn div_inner_right_div_reduction_left() {
+        let a = quote! {
+            src: UnitsDiv<f64, Meter, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>
+        };
+        let b = quote! {
+            src.inner_right(|a| a.reduction_left())
+        };
+        assert_eq!(simplify(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn div_inner_left_div_reduction_left() {
+        let a = quote! {
+            src: UnitsDiv<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Meter>
+        };
+        let b = quote! {
+            src.inner_left(|a| a.reduction_left())
+        };
+        assert_eq!(simplify(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn nested_inner() {
+        let a = quote! {
+            src: UnitsMul<f64,
+                          UnitsMul<f64,
+                                   UnitsDiv<f64,
+                                            UnitsDiv<f64,
+                                                     UnitsMul<f64,
+                                                              Meter,
+                                                              Second>,
+                                                     Meter>,
+                                            UnitsDiv<f64,
+                                                     Meter,
+                                                     UnitsMul<f64,
+                                                              Second,
+                                                              UnitsDiv<f64,
+                                                                       Meter,
+                                                                       Second>>>>,
+                                           Second>,
+                                  UnitsDiv<f64,
+                                           Meter,
+                                           UnitsDiv<f64,
+                                                    UnitsMul<f64,
+                                                             Meter,
+                                                             Second>,
+                                                    Meter>>>
+        };
+        let b = quote! {
+            src.inner_left(|a|
+                           a.inner_left (|a|
+                                         a.inner_left (|a|
+                                                       a.reduction_left ()
+                                         ).inner_right(|a|
+                                                       a.inner_right (|a|
+                                                                      a.commutative().reduction()
+                                                       ).reduction()
+                                         ).scalar ()
+                           )
+            ).inner_right(|a|
+                          a.inner_right (|a|
+                                         a.reduction_left ()
+                          )
+            )
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }

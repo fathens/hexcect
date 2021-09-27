@@ -69,6 +69,24 @@ impl<V, A, B> UnitsMul<V, A, B> {
     pub fn commutative(self) -> UnitsMul<V, B, A> {
         self.0.into()
     }
+
+    pub fn inner_right<C>(self, f: impl Fn(B) -> C) -> UnitsMul<V, A, C>
+    where
+        V: Copy,
+        B: From<V>,
+    {
+        let _c: C = f(self.0.into());
+        self.0.into()
+    }
+
+    pub fn inner_left<C>(self, f: impl Fn(A) -> C) -> UnitsMul<V, C, B>
+    where
+        V: Copy,
+        A: From<V>,
+    {
+        let _c: C = f(self.0.into());
+        self.0.into()
+    }
 }
 
 impl<V, A> UnitsMul<V, A, Scalar<V>>
@@ -94,6 +112,26 @@ where
 #[derive(Clone, Copy, CalcMix)]
 #[calcmix(unit_name = format!("{}/{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
+
+impl<V, A, B> UnitsDiv<V, A, B> {
+    pub fn inner_right<C>(self, f: impl Fn(B) -> C) -> UnitsDiv<V, A, C>
+    where
+        V: Copy,
+        B: From<V>,
+    {
+        let _c: C = f(self.0.into());
+        self.0.into()
+    }
+
+    pub fn inner_left<C>(self, f: impl Fn(A) -> C) -> UnitsDiv<V, C, B>
+    where
+        V: Copy,
+        A: From<V>,
+    {
+        let _c: C = f(self.0.into());
+        self.0.into()
+    }
+}
 
 impl<V, A> UnitsDiv<V, A, A> {
     /// A / A = Scalar
@@ -237,5 +275,73 @@ mod tests {
         let s = b.reduction_left();
         assert_eq!(s.0, 15.0);
         assert_eq!(s.to_string(), "15m");
+    }
+
+    #[test]
+    fn mul_inner_right_reduction_left() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = takes * distance;
+        let b = a / time;
+        let c = Second::from(5.0) * b;
+        assert_eq!(c.0, 75.0);
+        assert_eq!(c.to_string(), "75ssm/s");
+
+        let s = c.inner_right(|a| a.reduction_left());
+        assert_eq!(s.0, 75.0);
+        assert_eq!(s.to_string(), "75sm");
+    }
+
+    #[test]
+    fn mul_inner_left_reduction_left() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = takes * distance;
+        let b = a / time;
+        let c = b * Second::from(5.0);
+        assert_eq!(c.0, 75.0);
+        assert_eq!(c.to_string(), "75sm/ss");
+
+        let s = c.inner_left(|a| a.reduction_left());
+        assert_eq!(s.0, 75.0);
+        assert_eq!(s.to_string(), "75ms");
+    }
+
+    #[test]
+    fn div_inner_right_reduction_left() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = takes * distance;
+        let b = a / time;
+        let c = Second::from(30.0) / b;
+        assert_eq!(c.0, 2.0);
+        assert_eq!(c.to_string(), "2s/sm/s");
+
+        let s = c.inner_right(|a| a.reduction_left());
+        assert_eq!(s.0, 2.0);
+        assert_eq!(s.to_string(), "2s/m");
+    }
+
+    #[test]
+    fn div_inner_left_reduction_left() {
+        let distance = Meter::from(10.0);
+        let time = Second::from(2.0);
+        let takes = Second::from(3.0);
+
+        let a = takes * distance;
+        let b = a / time;
+        let c = b / Second::from(5.0);
+        assert_eq!(c.0, 3.0);
+        assert_eq!(c.to_string(), "3sm/s/s");
+
+        let s = c.inner_left(|a| a.reduction_left());
+        assert_eq!(s.0, 3.0);
+        assert_eq!(s.to_string(), "3m/s");
     }
 }
