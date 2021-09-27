@@ -106,6 +106,42 @@ fn simplify_div_reduction_left() {
 }
 
 #[test]
+fn simplify_associative01() {
+    let a = (Meter::from(1_f64) * Second::from(1_f64)) * (Km::from(1_f64) / Second::from(1_f64));
+    let b: UnitsMul<f64, Meter, Km> =
+        simplify!(a: UnitsMul<f64, UnitsMul<f64, Meter, Second>, UnitsDiv<f64, Km, Second>>);
+    assert_eq!(a.to_string(), "1mskm/s");
+    assert_eq!(b.to_string(), "1mkm");
+}
+
+#[test]
+fn simplify_associative02() {
+    let a = (Second::from(1_f64) * Meter::from(1_f64)) * (Km::from(1_f64) / Second::from(1_f64));
+    let b: UnitsMul<f64, Meter, Km> =
+        simplify!(a: UnitsMul<f64, UnitsMul<f64, Second, Meter>, UnitsDiv<f64, Km, Second>>);
+    assert_eq!(a.to_string(), "1smkm/s");
+    assert_eq!(b.to_string(), "1mkm");
+}
+
+#[test]
+fn simplify_associative03() {
+    let a = (Km::from(1_f64) / Second::from(1_f64)) * (Meter::from(1_f64) * Second::from(1_f64));
+    let b: UnitsMul<f64, Meter, Km> =
+        simplify!(a: UnitsMul<f64, UnitsDiv<f64, Km, Second>, UnitsMul<f64, Meter, Second>>);
+    assert_eq!(a.to_string(), "1km/sms");
+    assert_eq!(b.to_string(), "1mkm");
+}
+
+#[test]
+fn simplify_associative04() {
+    let a = (Km::from(1_f64) / Second::from(1_f64)) * (Second::from(1_f64) * Meter::from(1_f64));
+    let b: UnitsMul<f64, Meter, Km> =
+        simplify!(a: UnitsMul<f64, UnitsDiv<f64, Km, Second>, UnitsMul<f64, Second, Meter>>);
+    assert_eq!(a.to_string(), "1km/ssm");
+    assert_eq!(b.to_string(), "1mkm");
+}
+
+#[test]
 fn simplify_inner() {
     let a = (Meter::from(1_f64)
         / ((Meter::from(1_f64) * Second::from(1_f64)) / Meter::from(1_f64)))

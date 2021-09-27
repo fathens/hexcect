@@ -120,61 +120,56 @@ impl Mixed {
         };
 
         match self {
-            Mul(a, b) => {
-                if *b == Scalar {
-                    next_more(quote! { .scalar() }, *a)
-                } else if *a == Scalar {
-                    next_more(quote! { .commutative().scalar() }, *b)
-                } else {
-                    match (*a, *b) {
-                        (Div(x, y), b) if *y == b => next_more(quote! { .reduction() }, *x),
-                        (a, Div(x, y)) if *y == a => {
-                            next_more(quote! { .commutative().reduction() }, *x)
-                        }
-                        (left, right) => {
-                            let (next_left, more_left) = left.simplify();
-                            let (next_right, more_right) = right.simplify();
+            Mul(left, right) => {
+                let (next_left, inner_left) = left.simplify();
+                let (next_right, inner_right) = right.simplify();
 
-                            let mut ts = TokenStream::new();
-                            let mk_next = |a, b| Mul(Box::new(a), Box::new(b));
+                let mut ts = TokenStream::new();
 
-                            if more_left.is_empty() && more_right.is_empty() {
-                                let box_mul = |a, b| Box::new(Mul(a, b));
-                                let box_div = |a, b| Box::new(Div(a, b));
+                if !inner_left.is_empty() {
+                    ts.extend(quote! {
+                        .inner_left(|a| a #inner_left)
+                    });
+                }
+                if !inner_right.is_empty() {
+                    ts.extend(quote! {
+                        .inner_right(|a| a #inner_right)
+                    });
+                }
 
-                                match (next_left, next_right) {
-                                    (Mul(a, b), Div(c, d)) if *b == *d => next_more(
-                                        quote! { .associative() },
-                                        Mul(a, box_mul(b, box_div(c, d))),
-                                    ),
-                                    (Mul(a, b), Div(c, d)) if *a == *d => next_more(
-                                        quote! {
-                                            .inner_left(|a| a.commutative())
-                                                .associative()
-                                        },
-                                        Mul(b, box_mul(a, box_div(c, d))),
-                                    ),
-                                    (Div(a, b), Mul(c, d)) if *d == *a || *d == *b => next_more(
-                                        quote! { .commutative() },
-                                        Mul(box_mul(c, d), box_div(a, b)),
-                                    ),
-                                    (a, b) => (mk_next(a, b), ts),
-                                }
-                            } else {
-                                if !more_left.is_empty() {
-                                    ts.extend(quote! {
-                                        .inner_left(|a| a #more_left)
-                                    });
-                                }
-                                if !more_right.is_empty() {
-                                    ts.extend(quote! {
-                                        .inner_right(|a| a #more_right)
-                                    });
-                                }
-                                next_more(ts, mk_next(next_left, next_right))
-                            }
-                        }
+                let box_mul = |a, b| Box::new(Mul(a, b));
+                let box_div = |a, b| Box::new(Div(a, b));
+
+                match (next_left, next_right) {
+                    (a, Scalar) => {
+                        ts.extend(quote! { .scalar() });
+                        next_more(ts, a)
                     }
+                    (Scalar, b) => {
+                        ts.extend(quote! { .commutative().scalar() });
+                        next_more(ts, b)
+                    }
+                    (Div(x, y), b) if *y == b => {
+                        ts.extend(quote! { .reduction() });
+                        next_more(ts, *x)
+                    }
+                    (a, Div(x, y)) if *y == a => {
+                        ts.extend(quote! { .commutative().reduction() });
+                        next_more(ts, *x)
+                    }
+                    (Mul(a, b), Div(c, d)) if *b == *d => {
+                        ts.extend(quote! { .associative() });
+                        next_more(ts, Mul(a, box_mul(b, box_div(c, d))))
+                    }
+                    (Mul(a, b), Div(c, d)) if *a == *d => {
+                        ts.extend(quote! { .inner_left(|a| a.commutative()).associative() });
+                        next_more(ts, Mul(b, box_mul(a, box_div(c, d))))
+                    }
+                    (Div(a, b), Mul(c, d)) if *b == *c || *b == *d => {
+                        ts.extend(quote! { .commutative() });
+                        next_more(ts, Mul(box_mul(c, d), box_div(a, b)))
+                    }
+                    (a, b) => (Mul(Box::new(a), Box::new(b)), ts),
                 }
             }
             Div(a, b) => {
