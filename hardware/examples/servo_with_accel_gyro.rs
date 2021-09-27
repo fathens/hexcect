@@ -137,8 +137,8 @@ fn main() -> IOResult<()> {
 fn start_mpu6050(
     accel_fs: AccelFullScale,
     gyro_fs: GyroFullScale,
-    for_accel: mpsc::Sender<AccelInfo>,
-    for_gyro: mpsc::Sender<GyroInfo>,
+    for_accel: mpsc::Sender<AccelInfo<f64>>,
+    for_gyro: mpsc::Sender<GyroInfo<f64>>,
 ) -> IOResult<()> {
     let dev = connect(1)?;
     let mut mpu = MPU6050::new(I2cWithAddr::new(dev, ADDRESS_LOW)).unwrap();
@@ -177,8 +177,8 @@ fn start_accel(
     channels: ServeAccel,
     solt: f64,
     filter: f64,
-) -> IOResult<mpsc::Sender<AccelInfo>> {
-    let (tx, rx) = mpsc::channel::<AccelInfo>();
+) -> IOResult<mpsc::Sender<AccelInfo<f64>>> {
+    let (tx, rx) = mpsc::channel::<AccelInfo<f64>>();
 
     std::thread::spawn(move || {
         let mut values = ValueXYZ::new(
@@ -188,7 +188,7 @@ fn start_accel(
         );
 
         for info in rx {
-            for (channel, rate) in values.update([info.x(), info.y(), info.z()]) {
+            for (channel, rate) in values.update([*info.x(), *info.y(), *info.z()]) {
                 for_pca9685.send((channel, rate)).unwrap();
             }
         }
@@ -203,8 +203,8 @@ fn start_gyro(
     channels: ServeGyro,
     solt: f64,
     filter: f64,
-) -> IOResult<mpsc::Sender<GyroInfo>> {
-    let (tx, rx) = mpsc::channel::<GyroInfo>();
+) -> IOResult<mpsc::Sender<GyroInfo<f64>>> {
+    let (tx, rx) = mpsc::channel::<GyroInfo<f64>>();
 
     std::thread::spawn(move || {
         let mut values = ValueXYZ::new(
@@ -215,7 +215,7 @@ fn start_gyro(
         values.init(90.0);
 
         for info in rx {
-            for (channel, rate) in values.update([info.x(), info.y(), info.z()]) {
+            for (channel, rate) in values.update([*info.x(), *info.y(), *info.z()]) {
                 for_pca9685.send((channel, rate)).unwrap();
             }
         }
@@ -250,7 +250,7 @@ impl ValueXYZ {
         vs
     }
 
-    pub fn update(&mut self, values: [f32; 3]) -> Vec<(Channel, f64)> {
+    pub fn update(&mut self, values: [f64; 3]) -> Vec<(Channel, f64)> {
         let values_f64: Vec<_> = values.iter().map(|v| *v as f64).collect();
         let cloned = self.current_values;
         let vs: Vec<_> = cloned.iter().zip(values_f64.clone()).collect();

@@ -2,7 +2,7 @@ use crate::model::sensor::{AccelInfo, GyroInfo};
 use derive_more::{From, Into};
 use num_derive::FromPrimitive;
 
-const RESOLUTION: f32 = 65500.0;
+const RESOLUTION: f64 = 65500.0;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct RawData {
@@ -22,8 +22,8 @@ pub struct GyroData {
 }
 
 impl GyroData {
-    pub fn scale(&self, fs: GyroFullScale) -> GyroInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
+    pub fn scale(&self, fs: GyroFullScale) -> GyroInfo<f64> {
+        let scaled = |v| v as f64 * fs.max() * 2.0 / RESOLUTION;
         GyroInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
     }
 }
@@ -38,9 +38,9 @@ pub enum GyroFullScale {
 }
 
 impl GyroFullScale {
-    pub fn max(&self) -> f32 {
+    pub fn max(&self) -> f64 {
         let s = 1 << (*self as u8);
-        250.0 * s as f32
+        250.0 * s as f64
     }
 }
 
@@ -52,8 +52,8 @@ pub struct AccelData {
 }
 
 impl AccelData {
-    pub fn scale(&self, fs: AccelFullScale) -> AccelInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
+    pub fn scale(&self, fs: AccelFullScale) -> AccelInfo<f64> {
+        let scaled = |v| v as f64 * fs.max() * 2.0 / RESOLUTION;
         AccelInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
     }
 }
@@ -68,9 +68,9 @@ pub enum AccelFullScale {
 }
 
 impl AccelFullScale {
-    pub fn max(&self) -> f32 {
+    pub fn max(&self) -> f64 {
         let s = 1 << (*self as u8 + 1);
-        s as f32
+        s as f64
     }
 }
 
