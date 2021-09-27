@@ -6,11 +6,11 @@ pub fn simplify(items: TokenStream) -> TokenStream {
     let mut tokens = ast.into_iter();
     let src = take_src(&mut tokens);
     let g = parse_type(tokens);
-    let mixed = Mixed::parse(g);
+    let mixed = Mixed::parse(g.clone());
     let (_, ts) = mixed.simplify();
 
     quote! {
-        #src #ts
+        (#src as #g) #ts
     }
 }
 
@@ -113,9 +113,6 @@ impl Mixed {
     fn simplify(self) -> (Mixed, TokenStream) {
         use Mixed::*;
 
-        let box_mul = |a, b| Box::new(Mul(a, b));
-        let box_div = |a, b| Box::new(Div(a, b));
-
         let next_more = |mut ts: TokenStream, a: Mixed| {
             let (next, more) = a.simplify();
             ts.extend(more);
@@ -142,6 +139,9 @@ impl Mixed {
                             let mk_next = |a, b| Mul(Box::new(a), Box::new(b));
 
                             if more_left.is_empty() && more_right.is_empty() {
+                                let box_mul = |a, b| Box::new(Mul(a, b));
+                                let box_div = |a, b| Box::new(Div(a, b));
+
                                 match (next_left, next_right) {
                                     (Mul(a, b), Div(c, d)) if *b == *d => next_more(
                                         quote! { .associative() },
@@ -171,9 +171,7 @@ impl Mixed {
                                         .inner_right(|a| a #more_right)
                                     });
                                 }
-                                let (next, more) = mk_next(next_left, next_right).simplify();
-                                ts.extend(more);
-                                (next, ts)
+                                next_more(ts, mk_next(next_left, next_right))
                             }
                         }
                     }
@@ -230,7 +228,7 @@ mod tests {
             src: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Second>
         };
         let b = quote! {
-            src.reduction()
+            (src as UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Second>).reduction()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -241,7 +239,7 @@ mod tests {
             src: UnitsMul<f64, Second, UnitsDiv<f64, Meter, Second>>
         };
         let b = quote! {
-            src.commutative().reduction()
+            (src as UnitsMul<f64, Second, UnitsDiv<f64, Meter, Second> >).commutative().reduction()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -252,7 +250,7 @@ mod tests {
             src: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Scalar<f64>>
         };
         let b = quote! {
-            src.scalar()
+            (src as UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Scalar<f64> >).scalar()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -263,7 +261,7 @@ mod tests {
             src: UnitsMul<f64, Scalar<f64>, UnitsDiv<f64, Meter, Second>>
         };
         let b = quote! {
-            src.commutative().scalar()
+            (src as UnitsMul<f64, Scalar<f64>, UnitsDiv<f64, Meter, Second> >).commutative().scalar()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -274,7 +272,7 @@ mod tests {
             src: UnitsDiv<f64, Meter, Meter>
         };
         let b = quote! {
-            src.reduction()
+            (src as UnitsDiv<f64, Meter, Meter>).reduction()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -285,7 +283,7 @@ mod tests {
             src: UnitsDiv<f64, Meter, Scalar<f64>>
         };
         let b = quote! {
-            src.scalar()
+            (src as UnitsDiv<f64, Meter, Scalar<f64> >).scalar()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -296,7 +294,7 @@ mod tests {
             src: UnitsDiv<f64, UnitsMul<f64, Second, Meter>, Meter>
         };
         let b = quote! {
-            src.reduction_right()
+            (src as UnitsDiv<f64, UnitsMul<f64, Second, Meter>, Meter>).reduction_right()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -307,7 +305,7 @@ mod tests {
             src: UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>
         };
         let b = quote! {
-            src.reduction_left()
+            (src as UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>).reduction_left()
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -318,7 +316,8 @@ mod tests {
             src: UnitsMul<f64, Second, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>
         };
         let b = quote! {
-            src.inner_right(|a| a.reduction_left())
+            (src as UnitsMul<f64, Second, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter> >)
+                .inner_right(|a| a.reduction_left())
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -329,7 +328,8 @@ mod tests {
             src: UnitsMul<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Second>
         };
         let b = quote! {
-            src.inner_left(|a| a.reduction_left())
+            (src as UnitsMul<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Second>)
+                .inner_left(|a| a.reduction_left())
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -340,7 +340,8 @@ mod tests {
             src: UnitsDiv<f64, Meter, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>
         };
         let b = quote! {
-            src.inner_right(|a| a.reduction_left())
+            (src as UnitsDiv<f64, Meter, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter> >)
+                .inner_right(|a| a.reduction_left())
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -351,7 +352,8 @@ mod tests {
             src: UnitsDiv<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Meter>
         };
         let b = quote! {
-            src.inner_left(|a| a.reduction_left())
+            (src as UnitsDiv<f64, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>, Meter>)
+                .inner_left(|a| a.reduction_left())
         };
         assert_eq!(simplify(a).to_string(), b.to_string());
     }
@@ -384,7 +386,29 @@ mod tests {
                                                     Meter>>>
         };
         let b = quote! {
-            src.inner_left(|a|
+            (src as UnitsMul<f64,
+                          UnitsMul<f64,
+                                   UnitsDiv<f64,
+                                            UnitsDiv<f64,
+                                                     UnitsMul<f64,
+                                                              Meter,
+                                                              Second>,
+                                                     Meter>,
+                                            UnitsDiv<f64,
+                                                     Meter,
+                                                     UnitsMul<f64,
+                                                              Second,
+                                                              UnitsDiv<f64,
+                                                                       Meter,
+                                                                       Second> > > >,
+                                           Second>,
+                                  UnitsDiv<f64,
+                                           Meter,
+                                           UnitsDiv<f64,
+                                                    UnitsMul<f64,
+                                                             Meter,
+                                                             Second>,
+                                                    Meter> > >).inner_left(|a|
                            a.inner_left (|a|
                                          a.inner_left (|a|
                                                        a.reduction_left ()

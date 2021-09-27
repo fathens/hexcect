@@ -40,8 +40,7 @@ fn div() {
 
 #[test]
 fn simplify_mul_reduction() {
-    let a: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Second> =
-        Meter::from(2.0_f64) / Second::from(4.0_f64) * Second::from(2.0_f64);
+    let a = Meter::from(2.0_f64) / Second::from(4.0_f64) * Second::from(2.0_f64);
     let b: Meter = simplify!(a: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Second>);
     assert_eq!(a.to_string(), "1m/ss");
     assert_eq!(b.to_string(), "1m");
@@ -49,8 +48,7 @@ fn simplify_mul_reduction() {
 
 #[test]
 fn simplify_mul_commutative_reduction() {
-    let a: UnitsMul<f64, Second, UnitsDiv<f64, Meter, Second>> =
-        Second::from(2.0_f64) * (Meter::from(3.0_f64) / Second::from(1.0_f64));
+    let a = Second::from(2.0_f64) * (Meter::from(3.0_f64) / Second::from(1.0_f64));
     let b: Meter = simplify!(a: UnitsMul<f64, Second, UnitsDiv<f64, Meter, Second>>);
     assert_eq!(a.to_string(), "6sm/s");
     assert_eq!(b.to_string(), "6m");
@@ -58,8 +56,7 @@ fn simplify_mul_commutative_reduction() {
 
 #[test]
 fn simplify_mul_scalar() {
-    let a: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Scalar<f64>> =
-        Meter::from(3.0_f64) / Second::from(2.0_f64) * Scalar::from(10.0_f64);
+    let a = Meter::from(3.0_f64) / Second::from(2.0_f64) * Scalar::from(10.0_f64);
     let b: UnitsDiv<f64, Meter, Second> =
         simplify!(a: UnitsMul<f64, UnitsDiv<f64, Meter, Second>, Scalar<f64>>);
     assert_eq!(a.to_string(), "15m/s");
@@ -78,7 +75,7 @@ fn simplify_mul_commutative_scalar() {
 
 #[test]
 fn simplify_div_reduction() {
-    let a: UnitsDiv<f64, Meter, Meter> = Meter::from(5.0_f64) / Meter::from(2.0_f64);
+    let a = Meter::from(5.0_f64) / Meter::from(2.0_f64);
     let b: Scalar<f64> = simplify!(a: UnitsDiv<f64, Meter, Meter>);
     assert_eq!(a.to_string(), "2.5m/m");
     assert_eq!(b.to_string(), "2.5");
@@ -86,7 +83,7 @@ fn simplify_div_reduction() {
 
 #[test]
 fn simplify_div_scalar() {
-    let a: UnitsDiv<f64, Meter, Scalar<f64>> = Meter::from(10_f64) / Scalar::from(5_f64);
+    let a = Meter::from(10_f64) / Scalar::from(5_f64);
     let b: Meter = simplify!(a: UnitsDiv<f64, Meter, Scalar<f64>>);
     assert_eq!(a.to_string(), "2m/");
     assert_eq!(b.to_string(), "2m");
@@ -94,8 +91,7 @@ fn simplify_div_scalar() {
 
 #[test]
 fn simplify_div_reduction_right() {
-    let a: UnitsDiv<f64, UnitsMul<f64, Second, Meter>, Meter> =
-        Second::from(5_f64) * Meter::from(3_f64) / Meter::from(2_f64);
+    let a = Second::from(5_f64) * Meter::from(3_f64) / Meter::from(2_f64);
     let b = simplify!(a: UnitsDiv<f64, UnitsMul<f64, Second, Meter>, Meter>);
     assert_eq!(a.to_string(), "7.5sm/m");
     assert_eq!(b.to_string(), "7.5s");
@@ -103,8 +99,7 @@ fn simplify_div_reduction_right() {
 
 #[test]
 fn simplify_div_reduction_left() {
-    let a: UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter> =
-        Meter::from(2_f64) * Second::from(3_f64) / Meter::from(4_f64);
+    let a = Meter::from(2_f64) * Second::from(3_f64) / Meter::from(4_f64);
     let b: Second = simplify!(a: UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>);
     assert_eq!(a.to_string(), "1.5ms/m");
     assert_eq!(b.to_string(), "1.5s");
@@ -118,7 +113,7 @@ fn simplify_inner() {
             / (Meter::from(1_f64)
                 / (Second::from(1_f64) * (Meter::from(1_f64) / Second::from(1_f64)))))
             * Second::from(1_f64));
-    let b = simplify!(
+    let b: UnitsMul<f64, Meter, Second> = simplify!(
         a: UnitsMul<
             f64,
             UnitsDiv<f64, Meter, UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Meter>>,
