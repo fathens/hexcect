@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 util = { path = "../util" }
-measure_units = { path = "../measure_units/facade" }
 
 num-traits = "~0.2"
 num-derive = "~0.3"

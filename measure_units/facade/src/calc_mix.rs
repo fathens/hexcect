@@ -56,11 +56,11 @@ pub trait CalcMix<V> {
 
 // ================================================================
 
-#[derive(Clone, Copy, CalcMix)]
+#[derive(Debug, Clone, Copy, CalcMix)]
 #[calcmix(unit_name = "".to_string())]
 pub struct Scalar<V>(V);
 
-#[derive(Clone, Copy, CalcMix)]
+#[derive(Debug, Clone, Copy, CalcMix)]
 #[calcmix(unit_name = format!("{}{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
@@ -119,7 +119,7 @@ where
     }
 }
 
-#[derive(Clone, Copy, CalcMix)]
+#[derive(Debug, Clone, Copy, CalcMix)]
 #[calcmix(unit_name = format!("{}/{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
