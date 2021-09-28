@@ -188,7 +188,7 @@ fn start_accel(
         );
 
         for info in rx {
-            for (channel, rate) in values.update([*info.x(), *info.y(), *info.z()]) {
+            for (channel, rate) in values.update([info.x(), info.y(), info.z()]) {
                 for_pca9685.send((channel, rate)).unwrap();
             }
         }
@@ -215,7 +215,7 @@ fn start_gyro(
         values.init(90.0);
 
         for info in rx {
-            for (channel, rate) in values.update([*info.x(), *info.y(), *info.z()]) {
+            for (channel, rate) in values.update([info.x(), info.y(), info.z()]) {
                 for_pca9685.send((channel, rate)).unwrap();
             }
         }
