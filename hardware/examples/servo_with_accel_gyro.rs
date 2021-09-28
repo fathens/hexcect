@@ -1,5 +1,5 @@
 use hardware::i2c::connect;
-use hardware::i2c::mpu6050::raw_data::{AccelFullScale, GyroFullScale};
+use hardware::i2c::mpu6050::raw_data::{AccelFullScale, FullScale, GyroFullScale};
 use hardware::i2c::mpu6050::{ADDRESS_LOW, MPU6050};
 use hardware::i2c::pca9685::PCA9685;
 use hardware::i2c::register_io::I2cWithAddr;
