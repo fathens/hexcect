@@ -10,20 +10,21 @@ pub fn derive(items: TokenStream) -> TokenStream {
     let inner_type =
         newtype_inner(&ast.data).unwrap_or_else(|| panic!("{} is not newtype struct.", name));
     let gs = &ast.generics;
+    let clean_gs = clean_generics(gs);
     let option = ConOpt::read_from_derive_input(ast.attrs);
 
     TokenStream::from_iter(option.convertible_sorted().into_iter().map(|(target, cr)| {
         let conv = cr.convert(&inner_type, quote! { src.0 });
         quote! {
-            impl #gs From<#name #gs> for #target #gs
+            impl #gs From<#name #clean_gs> for #target #clean_gs
             where
                 #inner_type: std::ops::Mul,
                 #inner_type: std::ops::Div,
                 #inner_type: From<f64>,
-                #target #gs: From<<#inner_type as std::ops::Mul>::Output>,
-                #target #gs: From<<#inner_type as std::ops::Div>::Output>,
+                #target #clean_gs: From<<#inner_type as std::ops::Mul>::Output>,
+                #target #clean_gs: From<<#inner_type as std::ops::Div>::Output>,
             {
-                fn from(src: #name #gs) -> #target #gs {
+                fn from(src: #name #clean_gs) -> #target #clean_gs {
                     #conv
                 }
             }
@@ -225,6 +226,40 @@ mod tests {
         };
         let b = quote! {
             impl <V> From<Second <V> > for Minute<V>
+            where
+                V: std::ops::Mul,
+                V: std::ops::Div,
+                V: From<f64>,
+                Minute<V>: From<<V as std::ops::Mul>::Output>,
+                Minute<V>: From<<V as std::ops::Div>::Output>,
+            {
+                fn from(src: Second<V>) -> Minute<V> {
+                    let s = 1.0/60.0;
+                    let s_f: f64 = s.into();
+                    if s_f == 0.0 {
+                        panic!("Using Zero as a rate !");
+                    }
+                    if !(s_f < 0.0) && !(0.0 < s_f) {
+                        panic!("Using NaN as a rate !");
+                    }
+                    let r: V = s_f.into();
+                    let a: V = src.0;
+                    let v = a * r;
+                    v.into()
+                }
+            }
+        };
+        assert_eq!(derive(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn generics_bound() {
+        let a = quote! {
+            #[convertible(Minute = 1.0/60.0)]
+            struct Second<V: FloatConst>(V);
+        };
+        let b = quote! {
+            impl <V: FloatConst> From<Second <V> > for Minute<V>
             where
                 V: std::ops::Mul,
                 V: std::ops::Div,

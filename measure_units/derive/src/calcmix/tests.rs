@@ -215,6 +215,121 @@ fn with_generics() {
 }
 
 #[test]
+fn with_generics_bound() {
+    let a = quote! {
+        #[calcmix(unit_name = "m".to_string())]
+        struct Meter<V: FloatConst>(V);
+    };
+    let b = quote! {
+        impl<V: FloatConst> From<V> for Meter<V> {
+            fn from(v: V) -> Self {
+                Self(v)
+            }
+        }
+
+        impl<> From<Meter<f32,>> for f32 {
+            fn from(a: Meter<f32,>) -> Self {
+                a.0
+            }
+        }
+        impl<> From<Meter<f64,>> for f64 {
+            fn from(a: Meter<f64,>) -> Self {
+                a.0
+            }
+        }
+
+        impl<> From<Meter<i32,>> for i32 {
+            fn from(a: Meter<i32,>) -> Self {
+                a.0
+            }
+        }
+        impl<> From<Meter<i64,>> for i64 {
+            fn from(a: Meter<i64,>) -> Self {
+                a.0
+            }
+        }
+
+        impl<V: FloatConst> CalcMix<V> for Meter<V>
+        where
+        {
+            fn unit_name() -> std::lazy::Lazy<String> {
+                std::lazy::Lazy::new(|| "m".to_string())
+            }
+        }
+
+        impl<V: FloatConst> std::fmt::Display for Meter<V>
+        where
+            V: std::fmt::Display,
+            V: From<Self>,
+            Self: Copy,
+            Self: CalcMix<V>,
+        {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let v: V = (*self).into();
+                write!(f, "{}{}", v, *Self::unit_name())
+            }
+        }
+
+        impl<O, V: FloatConst> std::ops::Add<O> for Meter<V>
+        where
+            V: std::ops::Add,
+            Self: Into<V>,
+            Self: From<<V as std::ops::Add>::Output>,
+            Self: CalcMix<V>,
+            O: Into<Self>,
+        {
+            type Output = Self;
+            fn add(self, rhs: O) -> Self::Output {
+                self.calc_add(rhs.into())
+            }
+        }
+
+        impl<O, V: FloatConst> std::ops::Sub<O> for Meter<V>
+        where
+            V: std::ops::Sub,
+            Self: Into<V>,
+            Self: From<<V as std::ops::Sub>::Output>,
+            Self: CalcMix<V>,
+            O: Into<Self>,
+        {
+            type Output = Self;
+            fn sub(self, rhs: O) -> Self::Output {
+                self.calc_sub(rhs.into())
+            }
+        }
+
+        impl<O, V: FloatConst> std::ops::Mul<O> for Meter<V>
+        where
+            V: std::ops::Mul,
+            O: Into<V>,
+            Self: Into<V>,
+            Self: CalcMix<V>,
+            UnitsMul<V, Self, O>: From<<V as std::ops::Mul>::Output>,
+        {
+            type Output = UnitsMul<V, Self, O>;
+            fn mul(self, rhs: O) -> Self::Output {
+                self.calc_mul(rhs)
+            }
+        }
+
+        impl<O, V: FloatConst> std::ops::Div<O> for Meter<V>
+        where
+            V: std::ops::Div,
+            O: Into<V>,
+            Self: Into<V>,
+            Self: CalcMix<V>,
+            UnitsDiv<V, Self, O>: From<<V as std::ops::Div>::Output>,
+        {
+            type Output = UnitsDiv<V, Self, O>;
+            fn div(self, rhs: O) -> Self::Output {
+                self.calc_div(rhs)
+            }
+        }
+    };
+    assert_eq!(derive(a).to_string(), b.to_string());
+}
+
+#[test]
 fn with_generics_into() {
     let a = quote! {
         #[calcmix(into = [f32, i32], unit_name = "m".to_string())]
@@ -619,6 +734,112 @@ fn with_mix_conc2() {
         }
 
         impl<O, V, A, B> std::ops::Div<O> for UnitsPat<V, A, B>
+        where
+            V: std::ops::Div,
+            O: Into<V>,
+            Self: Into<V>,
+            Self: CalcMix<V>,
+            UnitsDiv<V, Self, O>: From<<V as std::ops::Div>::Output>,
+        {
+            type Output = UnitsDiv<V, Self, O>;
+            fn div(self, rhs: O) -> Self::Output {
+                self.calc_div(rhs)
+            }
+        }
+    };
+    assert_eq!(derive(a).to_string(), b.to_string());
+}
+
+#[test]
+fn with_mix_conc2_bound() {
+    let a = quote! {
+        #[calcmix(into=[f32, f64], unit_name = format!("{}${}", *A::unit_name(), *B::unit_name()))]
+        struct UnitsPat<V: Float, A, B>(V, PhantomData<A>, PhantomData<B>, PhantomData<char>);
+    };
+    let b = quote! {
+        impl<V: Float, A, B> From<V> for UnitsPat<V, A, B> {
+            fn from(v: V) -> Self {
+                Self(v, std::marker::PhantomData::<A>, std::marker::PhantomData::<B>, std::marker::PhantomData::<char>)
+            }
+        }
+
+        impl<A, B,> From<UnitsPat<f32, A, B,>> for f32 {
+            fn from(a: UnitsPat<f32, A, B,>) -> Self {
+                a.0
+            }
+        }
+        impl<A, B,> From<UnitsPat<f64, A, B,>> for f64 {
+            fn from(a: UnitsPat<f64, A, B,>) -> Self {
+                a.0
+            }
+        }
+
+        impl<V: Float, A, B> CalcMix<V> for UnitsPat<V, A, B>
+        where
+            A: CalcMix<V>,
+            B: CalcMix<V>,
+        {
+            fn unit_name() -> std::lazy::Lazy<String> {
+                std::lazy::Lazy::new(|| format!("{}${}", *A::unit_name(), *B::unit_name()))
+            }
+        }
+
+        impl<V: Float, A, B> std::fmt::Display for UnitsPat<V, A, B>
+        where
+            V: std::fmt::Display,
+            V: From<Self>,
+            Self: Copy,
+            Self: CalcMix<V>,
+        {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let v: V = (*self).into();
+                write!(f, "{}{}", v, *Self::unit_name())
+            }
+        }
+
+        impl<O, V: Float, A, B> std::ops::Add<O> for UnitsPat<V, A, B>
+        where
+            V: std::ops::Add,
+            Self: Into<V>,
+            Self: From<<V as std::ops::Add>::Output>,
+            Self: CalcMix<V>,
+            O: Into<Self>,
+        {
+            type Output = Self;
+            fn add(self, rhs: O) -> Self::Output {
+                self.calc_add(rhs.into())
+            }
+        }
+
+        impl<O, V: Float, A, B> std::ops::Sub<O> for UnitsPat<V, A, B>
+        where
+            V: std::ops::Sub,
+            Self: Into<V>,
+            Self: From<<V as std::ops::Sub>::Output>,
+            Self: CalcMix<V>,
+            O: Into<Self>,
+        {
+            type Output = Self;
+            fn sub(self, rhs: O) -> Self::Output {
+                self.calc_sub(rhs.into())
+            }
+        }
+
+        impl<O, V: Float, A, B> std::ops::Mul<O> for UnitsPat<V, A, B>
+        where
+            V: std::ops::Mul,
+            O: Into<V>,
+            Self: Into<V>,
+            Self: CalcMix<V>,
+            UnitsMul<V, Self, O>: From<<V as std::ops::Mul>::Output>,
+        {
+            type Output = UnitsMul<V, Self, O>;
+            fn mul(self, rhs: O) -> Self::Output {
+                self.calc_mul(rhs)
+            }
+        }
+
+        impl<O, V: Float, A, B> std::ops::Div<O> for UnitsPat<V, A, B>
         where
             V: std::ops::Div,
             O: Into<V>,

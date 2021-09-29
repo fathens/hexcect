@@ -1,4 +1,5 @@
-use proc_macro2::{Group, TokenTree};
+use proc_macro2::{Group, TokenStream, TokenTree};
+use quote::quote;
 use std::iter::Peekable;
 use syn::{Data, Fields, Type};
 
@@ -139,4 +140,24 @@ where
         }
         _ => None,
     }
+}
+
+pub fn clean_typeparam(ty: &syn::TypeParam) -> syn::TypeParam {
+    syn::TypeParam::from(ty.ident.clone())
+}
+
+pub fn clean_generics(gp: &syn::Generics) -> TokenStream {
+    let mut ps = gp.params.iter().flat_map(|gp| match gp {
+        syn::GenericParam::Type(g) => Some(clean_typeparam(g)),
+        _ => None,
+    });
+    let mut ts = TokenStream::new();
+    if let Some(a) = ps.next() {
+        ts.extend(quote! { <#a });
+        for p in ps {
+            ts.extend(quote! {, #p });
+        }
+        ts.extend(quote! { > });
+    }
+    ts
 }
