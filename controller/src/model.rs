@@ -1,12 +1,12 @@
 mod angle;
 mod dimensional;
 mod distance;
-mod time;
+mod duration;
 
 pub use angle::*;
 pub use dimensional::*;
 pub use distance::*;
-pub use time::*;
+pub use duration::*;
 
 use measure_units::*;
 
