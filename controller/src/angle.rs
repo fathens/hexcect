@@ -1,5 +1,5 @@
 use measure_units::*;
-use num_traits::{Float, NumAssignOps};
+use num_traits::{Float, FloatConst, NumAssignOps};
 
 pub trait Angle<F>: From<F> + Into<F>
 where
@@ -27,9 +27,9 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, CalcMix, Convertible)]
-#[calcmix(unit_name = "r".to_string())]
-#[convertible(Degrees = 180.0 / core::f64::consts::PI)]
-pub struct Radians<V>(V);
+#[calcmix(into = [f32, f64], unit_name = "r".to_string())]
+#[convertible(Degrees = V::from_u8(180).unwrap() / V::PI())]
+pub struct Radians<V: FloatConst>(V);
 
 impl Angle<f32> for Radians<f32> {
     const MODULO: f32 = core::f32::consts::PI;
@@ -40,9 +40,9 @@ impl Angle<f64> for Radians<f64> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, CalcMix, Convertible)]
-#[calcmix(unit_name = "°".to_string())]
-#[convertible(Radians = core::f64::consts::PI / 180.0)]
-pub struct Degrees<V>(V);
+#[calcmix(into = [f32, f64], unit_name = "°".to_string())]
+#[convertible(Radians = V::PI() / V::from_u8(180).unwrap())]
+pub struct Degrees<V: FloatConst>(V);
 
 impl Angle<f32> for Degrees<f32> {
     const MODULO: f32 = 180.0;

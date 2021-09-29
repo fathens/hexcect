@@ -14,15 +14,14 @@ pub fn derive(items: TokenStream) -> TokenStream {
     let option = ConOpt::read_from_derive_input(ast.attrs);
 
     TokenStream::from_iter(option.convertible_sorted().into_iter().map(|(target, cr)| {
-        let conv = cr.convert(&inner_type, quote! { src.0 });
+        let conv = cr.convert(&inner_type);
         quote! {
             impl #gs From<#name #clean_gs> for #target #clean_gs
             where
-                #inner_type: std::ops::Mul,
-                #inner_type: std::ops::Div,
-                #inner_type: From<f64>,
-                #target #clean_gs: From<<#inner_type as std::ops::Mul>::Output>,
-                #target #clean_gs: From<<#inner_type as std::ops::Div>::Output>,
+                #inner_type: num_traits::Float,
+                #inner_type: num_traits::FromPrimitive,
+                #inner_type: From<#name #clean_gs>,
+                #inner_type: Into<#target #clean_gs>,
             {
                 fn from(src: #name #clean_gs) -> #target #clean_gs {
                     #conv
@@ -55,27 +54,21 @@ impl ConvRate {
         (target, conv)
     }
 
-    fn convert(&self, inner: &syn::Type, src: TokenStream) -> TokenStream {
+    fn convert(&self, inner: &syn::Type) -> TokenStream {
         match self {
             ConvRate::Expo(s) => quote! {
                 let s: i8 = #s;
-                let s_f: f64 = 10u32.pow(s.abs() as u32).into();
-                let r: #inner = s_f.into();
-                let a: #inner = #src;
+                let p = 10u32.pow(s.abs() as u32);
+                let r = #inner::from_u32(p).unwrap();
+                let a: #inner = src.into();
                 let v = if s.is_negative() { a / r } else { a * r };
                 v.into()
             },
             ConvRate::Real(s) => quote! {
-                let s = #s;
-                let s_f: f64 = s.into();
-                if s_f == 0.0 {
-                    panic!("Using Zero as a rate !");
-                }
-                if !(s_f < 0.0) && !(0.0 < s_f) {
-                    panic!("Using NaN as a rate !");
-                }
-                let r: #inner = s_f.into();
-                let a: #inner = #src;
+                let r: #inner = #s;
+                if r.is_zero() { panic!("Using Zero as a rate !"); }
+                if r.is_nan() { panic!("Using NaN as a rate !"); }
+                let a: #inner = src.into();
                 let v = a * r;
                 v.into()
             },
@@ -125,57 +118,48 @@ mod tests {
         let b = quote! {
             impl From<Meter> for Cm
             where
-                f64: std::ops::Mul,
-                f64: std::ops::Div,
-                f64: From<f64>,
-                Cm: From<<f64 as std::ops::Mul>::Output>,
-                Cm: From<<f64 as std::ops::Div>::Output>,
+                f64: num_traits::Float,
+                f64: num_traits::FromPrimitive,
+                f64: From<Meter>,
+                f64: Into<Cm>,
             {
                 fn from(src: Meter) -> Cm {
-                    let s = 100;
-                    let s_f: f64 = s.into();
-                    if s_f == 0.0 {
-                        panic!("Using Zero as a rate !");
-                    }
-                    if !(s_f < 0.0) && !(0.0 < s_f) {
-                        panic!("Using NaN as a rate !");
-                    }
-                    let r: f64 = s_f.into();
-                    let a: f64 = src.0;
+                    let r: f64 = 100;
+                    if r.is_zero() { panic!("Using Zero as a rate !"); }
+                    if r.is_nan() { panic!("Using NaN as a rate !"); }
+                    let a: f64 = src.into();
                     let v = a * r;
                     v.into()
                 }
             }
             impl From<Meter> for Km
             where
-                f64: std::ops::Mul,
-                f64: std::ops::Div,
-                f64: From<f64>,
-                Km: From<<f64 as std::ops::Mul>::Output>,
-                Km: From<<f64 as std::ops::Div>::Output>,
+                f64: num_traits::Float,
+                f64: num_traits::FromPrimitive,
+                f64: From<Meter>,
+                f64: Into<Km>,
             {
                 fn from(src: Meter) -> Km {
                     let s: i8 = -3;
-                    let s_f: f64 = 10u32.pow(s.abs() as u32).into();
-                    let r: f64 = s_f.into();
-                    let a: f64 = src.0;
+                    let p = 10u32.pow(s.abs() as u32);
+                    let r = f64::from_u32(p).unwrap();
+                    let a: f64 = src.into();
                     let v = if s.is_negative() { a / r } else { a * r };
                     v.into()
                 }
             }
             impl From<Meter> for Milli
             where
-                f64: std::ops::Mul,
-                f64: std::ops::Div,
-                f64: From<f64>,
-                Milli: From<<f64 as std::ops::Mul>::Output>,
-                Milli: From<<f64 as std::ops::Div>::Output>,
+                f64: num_traits::Float,
+                f64: num_traits::FromPrimitive,
+                f64: From<Meter>,
+                f64: Into<Milli>,
             {
                 fn from(src: Meter) -> Milli {
                     let s: i8 = 3;
-                    let s_f: f64 = 10u32.pow(s.abs() as u32).into();
-                    let r: f64 = s_f.into();
-                    let a: f64 = src.0;
+                    let p = 10u32.pow(s.abs() as u32);
+                    let r = f64::from_u32(p).unwrap();
+                    let a: f64 = src.into();
                     let v = if s.is_negative() { a / r } else { a * r };
                     v.into()
                 }
@@ -193,23 +177,16 @@ mod tests {
         let b = quote! {
             impl From<Radian> for Degree
             where
-                f64: std::ops::Mul,
-                f64: std::ops::Div,
-                f64: From<f64>,
-                Degree: From<<f64 as std::ops::Mul>::Output>,
-                Degree: From<<f64 as std::ops::Div>::Output>,
+                f64: num_traits::Float,
+                f64: num_traits::FromPrimitive,
+                f64: From<Radian>,
+                f64: Into<Degree>,
             {
                 fn from(src: Radian) -> Degree {
-                    let s = 180.0 / core::f64::consts::PI;
-                    let s_f: f64 = s.into();
-                    if s_f == 0.0 {
-                        panic!("Using Zero as a rate !");
-                    }
-                    if !(s_f < 0.0) && !(0.0 < s_f) {
-                        panic!("Using NaN as a rate !");
-                    }
-                    let r: f64 = s_f.into();
-                    let a: f64 = src.0;
+                    let r: f64 = 180.0 / core::f64::consts::PI;
+                    if r.is_zero() { panic!("Using Zero as a rate !"); }
+                    if r.is_nan() { panic!("Using NaN as a rate !"); }
+                    let a: f64 = src.into();
                     let v = a * r;
                     v.into()
                 }
@@ -227,23 +204,16 @@ mod tests {
         let b = quote! {
             impl <V> From<Second <V> > for Minute<V>
             where
-                V: std::ops::Mul,
-                V: std::ops::Div,
-                V: From<f64>,
-                Minute<V>: From<<V as std::ops::Mul>::Output>,
-                Minute<V>: From<<V as std::ops::Div>::Output>,
+                V: num_traits::Float,
+                V: num_traits::FromPrimitive,
+                V: From< Second<V> >,
+                V: Into< Minute<V> >,
             {
                 fn from(src: Second<V>) -> Minute<V> {
-                    let s = 1.0/60.0;
-                    let s_f: f64 = s.into();
-                    if s_f == 0.0 {
-                        panic!("Using Zero as a rate !");
-                    }
-                    if !(s_f < 0.0) && !(0.0 < s_f) {
-                        panic!("Using NaN as a rate !");
-                    }
-                    let r: V = s_f.into();
-                    let a: V = src.0;
+                    let r: V = 1.0/60.0;
+                    if r.is_zero() { panic!("Using Zero as a rate !"); }
+                    if r.is_nan() { panic!("Using NaN as a rate !"); }
+                    let a: V = src.into();
                     let v = a * r;
                     v.into()
                 }
@@ -261,23 +231,16 @@ mod tests {
         let b = quote! {
             impl <V: FloatConst> From<Second <V> > for Minute<V>
             where
-                V: std::ops::Mul,
-                V: std::ops::Div,
-                V: From<f64>,
-                Minute<V>: From<<V as std::ops::Mul>::Output>,
-                Minute<V>: From<<V as std::ops::Div>::Output>,
+                V: num_traits::Float,
+                V: num_traits::FromPrimitive,
+                V: From< Second<V> >,
+                V: Into< Minute<V> >,
             {
                 fn from(src: Second<V>) -> Minute<V> {
-                    let s = 1.0/60.0;
-                    let s_f: f64 = s.into();
-                    if s_f == 0.0 {
-                        panic!("Using Zero as a rate !");
-                    }
-                    if !(s_f < 0.0) && !(0.0 < s_f) {
-                        panic!("Using NaN as a rate !");
-                    }
-                    let r: V = s_f.into();
-                    let a: V = src.0;
+                    let r: V = 1.0/60.0;
+                    if r.is_zero() { panic!("Using Zero as a rate !"); }
+                    if r.is_nan() { panic!("Using NaN as a rate !"); }
+                    let a: V = src.into();
                     let v = a * r;
                     v.into()
                 }
