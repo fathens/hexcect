@@ -1,46 +1,25 @@
 use measure_units::*;
-use std::ops::{Add, Div, Mul, Rem, Sub};
+use num_traits::{Float, NumAssignOps};
 
 pub trait Angle<F>: From<F> + Into<F>
 where
-    F: Add<Output = F>,
-    F: Sub<Output = F>,
-    F: Mul<Output = F>,
-    F: Div<Output = F>,
-    F: Rem<Output = F>,
-    F: PartialOrd,
-    F: Copy,
-    F: From<f32>,
+    F: Float,
+    F: NumAssignOps,
 {
     const MODULO: F;
 
     fn normalize(self) -> Self {
         let modulo: F = Self::MODULO;
+        let round = modulo + modulo;
 
         let value: F = self.into();
+        let mut r = value % round;
 
-        let zero: F = 0_f32.into();
-        let two: F = 2_f32.into();
-
-        let round = modulo * two;
-        let v = value % round;
-        let abs = if v < zero { zero - v } else { v };
-
-        let mut r = if abs < modulo {
-            v
-        } else {
-            let adding = if v > zero { zero - round } else { round };
-            v + adding
-        };
-
-        let epsilon: F = f32::EPSILON.into();
-        let mut diff = r - modulo;
-        if diff < zero {
-            diff = zero - diff;
+        if r.abs() > modulo {
+            r += if r.is_sign_positive() { -round } else { round };
         }
-
-        if diff < epsilon {
-            r = zero - modulo;
+        if (r - modulo).abs() < F::epsilon() {
+            r = -modulo;
         }
 
         r.into()
