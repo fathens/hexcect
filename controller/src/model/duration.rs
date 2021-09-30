@@ -1,11 +1,11 @@
 use measure_units::*;
 
-#[derive(Debug, Clone, Copy, PartialOrd, PartialEq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
 #[calcmix(unit_name = "s".to_string())]
 #[convertible(Milliseconds ^ 3)]
 pub struct Seconds<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, PartialEq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
 #[calcmix(unit_name = "ms".to_string())]
 #[convertible(Seconds ^ -3)]
 pub struct Milliseconds<V>(V);

@@ -26,7 +26,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible)]
 #[calcmix(into = [f32, f64], unit_name = "r".to_string())]
 #[convertible(Degrees = V::from_u8(180).unwrap() / V::PI())]
 pub struct Radians<V: FloatConst>(V);
@@ -39,7 +39,7 @@ impl Angle<f64> for Radians<f64> {
     const MODULO: f64 = core::f64::consts::PI;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible)]
 #[calcmix(into = [f32, f64], unit_name = "°".to_string())]
 #[convertible(Radians = V::PI() / V::from_u8(180).unwrap())]
 pub struct Degrees<V: FloatConst>(V);

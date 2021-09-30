@@ -4,7 +4,7 @@ use derive_more::Constructor;
 use getset::CopyGetters;
 use num_traits::FloatConst;
 
-#[derive(Debug, Constructor, CopyGetters)]
+#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Gyro3D<V: Copy + FloatConst> {
     x: AngleVelocity<V>,
@@ -12,7 +12,7 @@ pub struct Gyro3D<V: Copy + FloatConst> {
     z: AngleVelocity<V>,
 }
 
-#[derive(Debug, Constructor, CopyGetters)]
+#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Accel3D<V: Copy> {
     x: Accel<V>,
