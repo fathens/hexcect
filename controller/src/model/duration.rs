@@ -10,12 +10,12 @@ pub struct Seconds<V>(V);
 #[convertible(Seconds ^ -3)]
 pub struct Milliseconds<V>(V);
 
-pub trait Duration<V> {
+pub trait MkDuration<V> {
     fn seconds(self) -> Seconds<V>;
     fn milliseconds(self) -> Milliseconds<V>;
 }
 
-impl Duration<f32> for f32 {
+impl MkDuration<f32> for f32 {
     fn seconds(self) -> Seconds<f32> {
         self.into()
     }
@@ -25,7 +25,7 @@ impl Duration<f32> for f32 {
     }
 }
 
-impl Duration<f64> for f64 {
+impl MkDuration<f64> for f64 {
     fn seconds(self) -> Seconds<f64> {
         self.into()
     }

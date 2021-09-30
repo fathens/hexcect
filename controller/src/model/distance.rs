@@ -10,12 +10,12 @@ pub struct Meters<V>(V);
 #[convertible(Meters ^ -3)]
 pub struct Millimeters<V>(V);
 
-pub trait Distance<V> {
+pub trait MkDistance<V> {
     fn meters(self) -> Meters<V>;
     fn millimeters(self) -> Millimeters<V>;
 }
 
-impl Distance<f32> for f32 {
+impl MkDistance<f32> for f32 {
     fn meters(self) -> Meters<f32> {
         self.into()
     }
@@ -25,7 +25,7 @@ impl Distance<f32> for f32 {
     }
 }
 
-impl Distance<f64> for f64 {
+impl MkDistance<f64> for f64 {
     fn meters(self) -> Meters<f64> {
         self.into()
     }
