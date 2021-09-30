@@ -9,7 +9,10 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
+          override: true
+          default: true
+          components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v1
 
@@ -27,11 +30,6 @@ jobs:
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
 
       - name: Report test coverage
         uses: actions-rs/tarpaulin@v0.1
