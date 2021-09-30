@@ -8,6 +8,10 @@ pub struct Meter(f64);
 #[calcmix(unit_name = "s".to_string())]
 pub struct Second(f64);
 
+#[derive(Clone, Copy, CalcMix)]
+#[calcmix(unit_name = "d".to_string())]
+pub struct Degree(f64);
+
 #[test]
 fn simple_add() {
     let a = UnitsDiv::<f64, Meter, Second>::from(1.2);
@@ -113,6 +117,42 @@ fn reduction_left() {
     let s = b.reduction_left();
     assert_eq!(s.0, 15.0);
     assert_eq!(s.to_string(), "15m");
+}
+
+#[test]
+fn infuse_extract_nmr() {
+    type Extracted = UnitsMul<f64, Meter, UnitsDiv<f64, Second, Degree>>;
+    type Infused = UnitsDiv<f64, UnitsMul<f64, Meter, Second>, Degree>;
+
+    let a = Meter::from(2.0);
+    let b = Second::from(3.0);
+    let c = Degree::from(5.0);
+
+    let x: Extracted = a * (b / c);
+    let y: Infused = x.infuse_nmr();
+    let z: Extracted = y.extract_nmr();
+
+    assert_eq!(x.to_string(), "1.2ms/d");
+    assert_eq!(y.to_string(), "1.2ms/d");
+    assert_eq!(z.to_string(), "1.2ms/d");
+}
+
+#[test]
+fn infuse_extract_dnm() {
+    type Extracted = UnitsDiv<f64, UnitsDiv<f64, Meter, Second>, Degree>;
+    type Infused = UnitsDiv<f64, Meter, UnitsMul<f64, Second, Degree>>;
+
+    let a = Meter::from(3.0);
+    let b = Second::from(2.0);
+    let c = Degree::from(5.0);
+
+    let x: Extracted = a / b / c;
+    let y: Infused = x.infuse_dnm();
+    let z: Extracted = y.extract_dnm();
+
+    assert_eq!(x.to_string(), "0.3m/s/d");
+    assert_eq!(y.to_string(), "0.3m/sd");
+    assert_eq!(z.to_string(), "0.3m/s/d");
 }
 
 #[test]

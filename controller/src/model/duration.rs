@@ -49,4 +49,13 @@ mod tests {
         let b: Seconds<f32> = a.into();
         assert_eq!(b.0, 0.001_f32);
     }
+
+    #[test]
+    fn additions() {
+        let a = 1_f64.seconds() + 1_f64.milliseconds();
+        assert_eq!(a.to_string(), "1.001s");
+
+        let a = 1_f32.milliseconds() + 1_f32.seconds();
+        assert_eq!(a.to_string(), "1001ms");
+    }
 }

@@ -49,4 +49,13 @@ mod tests {
         let b: Meters<f32> = a.into();
         assert_eq!(b.0, 0.001_f32);
     }
+
+    #[test]
+    fn additions() {
+        let a = 1_f64.meters() + 1_f64.millimeters();
+        assert_eq!(a.to_string(), "1.001m");
+
+        let a = 1_f32.millimeters() + 1_f32.meters();
+        assert_eq!(a.to_string(), "1001mm");
+    }
 }
