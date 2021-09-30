@@ -1,49 +1,18 @@
-#[derive(Debug, PartialEq)]
-pub struct GyroInfo {
-    x: f32,
-    y: f32,
-    z: f32,
+use derive_more::Constructor;
+use getset::CopyGetters;
+
+#[derive(Debug, Constructor, CopyGetters, PartialEq)]
+#[get_copy = "pub"]
+pub struct GyroInfo<V: Copy> {
+    x: V,
+    y: V,
+    z: V,
 }
 
-impl GyroInfo {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    pub fn x(&self) -> f32 {
-        self.x
-    }
-
-    pub fn y(&self) -> f32 {
-        self.y
-    }
-
-    pub fn z(&self) -> f32 {
-        self.z
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct AccelInfo {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-impl AccelInfo {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-
-    pub fn x(&self) -> f32 {
-        self.x
-    }
-
-    pub fn y(&self) -> f32 {
-        self.y
-    }
-
-    pub fn z(&self) -> f32 {
-        self.z
-    }
+#[derive(Debug, Constructor, CopyGetters, PartialEq)]
+#[get_copy = "pub"]
+pub struct AccelInfo<V: Copy> {
+    x: V,
+    y: V,
+    z: V,
 }

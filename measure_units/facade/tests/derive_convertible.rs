@@ -1,33 +1,40 @@
+#![feature(once_cell)]
+
 use measure_units::*;
+use num_traits::*;
 
-use derive_more::From;
-
-#[derive(Clone, Copy, From, Convertible)]
-#[convertible(Meter = 1000)]
+#[derive(Clone, Copy, CalcMix, Convertible)]
+#[convertible(Meter = 1000.0)]
 #[convertible(Milli ^ 6)]
+#[calcmix(unit_name = "km".to_string())]
 struct Km(f64);
 
-#[derive(Clone, Copy, From, Convertible)]
+#[derive(Clone, Copy, CalcMix, Convertible)]
 #[convertible(Km ^ -3)]
 #[convertible(Milli ^ 3)]
+#[calcmix(unit_name = "m".to_string())]
 struct Meter(f64);
 
-#[derive(Clone, Copy, From, Convertible)]
+#[derive(Clone, Copy, CalcMix, Convertible)]
 #[convertible(Km ^ -6)]
 #[convertible(Meter = 0.001)]
+#[calcmix(unit_name = "mm".to_string())]
 struct Milli(f64);
 
-#[derive(Clone, Copy, From, Convertible)]
-#[convertible(Minute = 1.0/60.0)]
+#[derive(Clone, Copy, CalcMix, Convertible)]
+#[convertible(Minute = V::from_f64(1.0/60.0).unwrap())]
+#[calcmix(unit_name = "s".to_string())]
 struct Second<V>(V);
 
-#[derive(Clone, Copy, From, Convertible)]
-#[convertible(Second = 60.0)]
+#[derive(Clone, Copy, CalcMix, Convertible)]
+#[convertible(Second = V::from_f32(60.0).unwrap())]
+#[calcmix(unit_name = "m".to_string())]
 struct Minute<V>(V);
 
-#[derive(Clone, Copy, From, Convertible)]
-#[convertible(Minute = 0.0/0.0)]
-#[convertible(Second = 1/(60 * 60))]
+#[derive(Clone, Copy, CalcMix, Convertible)]
+#[convertible(Minute = V::from_f32(0.0/0.0).unwrap())]
+#[convertible(Second = V::from_i32(1/(60 * 60)).unwrap())]
+#[calcmix(unit_name = "h".to_string())]
 struct Hour<V>(V);
 
 #[test]

@@ -14,24 +14,27 @@ pub fn derive(items: TokenStream) -> TokenStream {
     let (inner_type, phantoms) = newtype_with_phantoms(&ast.data)
         .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
     let ginner = generics_inner(&inner_type, &ast.generics);
+    let gparams = clean_generics(&ast.generics);
 
     let froms = impl_froms(
         &name,
         &inner_type,
-        ginner,
+        &ginner,
         &ast.generics,
+        &gparams,
         &phantoms,
         attr.into,
     );
     let cmix = impl_calcmix(
         &name,
         &inner_type,
-        ginner,
+        &ginner,
         &ast.generics,
+        &gparams,
         &phantoms,
         &attr.unit_name,
     );
-    let calcs = impl_calcs(&name, &inner_type, &ast.generics);
+    let calcs = impl_calcs(&name, &inner_type, &ast.generics, &gparams);
 
     TokenStream::from_iter([froms, cmix, calcs])
 }
@@ -49,22 +52,21 @@ fn is_eq<'a>(gp: &'a syn::GenericParam, ty: &syn::Type) -> Option<&'a syn::TypeP
     }
 }
 
-fn generics_inner<'a>(
-    inner_type: &syn::Type,
-    generics: &'a syn::Generics,
-) -> Option<&'a syn::TypeParam> {
+fn generics_inner(inner_type: &syn::Type, generics: &syn::Generics) -> Option<syn::TypeParam> {
     generics
         .params
         .iter()
         .flat_map(|g| is_eq(g, inner_type))
+        .map(clean_typeparam)
         .next()
 }
 
 fn impl_calcmix(
     name: &syn::Ident,
     inner_type: &syn::Type,
-    ginner: Option<&syn::TypeParam>,
+    ginner: &Option<syn::TypeParam>,
     generics: &syn::Generics,
+    gparams: &TokenStream,
     phantoms: &[syn::Type],
     unit_name: &TokenStream,
 ) -> TokenStream {
@@ -85,7 +87,7 @@ fn impl_calcmix(
     );
 
     quote! {
-        impl #generics CalcMix<#inner_type> for #name #generics
+        impl #generics CalcMix<#inner_type> for #name #gparams
         where
             #gs
         {
@@ -94,7 +96,7 @@ fn impl_calcmix(
             }
         }
 
-        impl #generics std::fmt::Display for #name #generics
+        impl #generics std::fmt::Display for #name #gparams
         where
             #gv
             Self: Copy,
@@ -108,10 +110,15 @@ fn impl_calcmix(
     }
 }
 
-fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generics) -> TokenStream {
+fn impl_calcs(
+    name: &syn::Ident,
+    inner_type: &syn::Type,
+    generics: &syn::Generics,
+    gparams: &TokenStream,
+) -> TokenStream {
     let gp = &generics.params;
     quote! {
-        impl<O, #gp> std::ops::Add<O> for #name #generics
+        impl<O, #gp> std::ops::Add<O> for #name #gparams
         where
             #inner_type: std::ops::Add,
             Self: Into<#inner_type>,
@@ -126,7 +133,7 @@ fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generic
             }
         }
 
-        impl<O, #gp> std::ops::Sub<O> for #name #generics
+        impl<O, #gp> std::ops::Sub<O> for #name #gparams
         where
             #inner_type: std::ops::Sub,
             Self: Into<#inner_type>,
@@ -141,7 +148,7 @@ fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generic
             }
         }
 
-        impl<O, #gp> std::ops::Mul<O> for #name #generics
+        impl<O, #gp> std::ops::Mul<O> for #name #gparams
         where
             #inner_type: std::ops::Mul,
             O: Into<#inner_type>,
@@ -156,7 +163,7 @@ fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generic
             }
         }
 
-        impl<O, #gp> std::ops::Div<O> for #name #generics
+        impl<O, #gp> std::ops::Div<O> for #name #gparams
         where
             #inner_type: std::ops::Div,
             O: Into<#inner_type>,
@@ -176,8 +183,9 @@ fn impl_calcs(name: &syn::Ident, inner_type: &syn::Type, generics: &syn::Generic
 fn impl_froms(
     name: &syn::Ident,
     inner_type: &syn::Type,
-    ginner: Option<&syn::TypeParam>,
+    ginner: &Option<syn::TypeParam>,
     generics: &syn::Generics,
+    gparams: &TokenStream,
     phantoms: &[syn::Type],
     into_types: Option<Vec<syn::Ident>>,
 ) -> TokenStream {
@@ -191,7 +199,7 @@ fn impl_froms(
         q
     };
     let mut base = quote! {
-        impl #generics From<#inner_type> for #name #generics {
+        impl #generics From<#inner_type> for #name #gparams {
             fn from(v: #inner_type) -> Self {
                 Self(#args)
             }

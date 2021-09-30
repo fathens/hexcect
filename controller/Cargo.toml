@@ -1,0 +1,13 @@
+[package]
+name = "controller"
+version = "0.1.3"
+edition = "2021"
+
+[dependencies]
+hardware = { path = "../hardware" }
+measure_units = { path = "../measure_units/facade" }
+
+num-traits = "~0.2"
+num-derive = "~0.3"
+derive_more = "~0.99"
+getset = "~0.1"

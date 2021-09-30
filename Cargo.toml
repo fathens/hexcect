@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "controller",
     "util",
     "measure_units/*",
     "hardware",

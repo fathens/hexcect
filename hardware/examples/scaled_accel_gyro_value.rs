@@ -66,8 +66,8 @@ fn run_loop(accel_fs: AccelFullScale, gyro_fs: GyroFullScale) -> IOResult<()> {
 
     loop {
         let info = mpu.get_infos().unwrap();
-        let accel_info = info.accel.scale(accel_fs);
-        let gyro_info = info.gyro.scale(gyro_fs);
+        let accel_info = info.accel.scale::<f64>(accel_fs);
+        let gyro_info = info.gyro.scale::<f64>(gyro_fs);
 
         execute!(
             stdout(),

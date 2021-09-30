@@ -1,8 +1,32 @@
 use crate::model::sensor::{AccelInfo, GyroInfo};
+
 use derive_more::{From, Into};
 use num_derive::FromPrimitive;
+use std::ops::{Div, Mul};
 
-const RESOLUTION: f32 = 65500.0;
+pub trait FullScale {
+    const RESOLUTION: i32 = 65500;
+
+    fn max(&self) -> i32;
+
+    fn scaled<V>(&self, x: i16, y: i16, z: i16) -> (V, V, V)
+    where
+        V: Mul<Output = V>,
+        V: Div<Output = V>,
+        V: From<i32>,
+        V: Copy,
+    {
+        let max: V = (self.max() << 1).into();
+        let rsv: V = Self::RESOLUTION.into();
+        let rate = max / rsv;
+
+        let scaled = |v| {
+            let src: V = (v as i32).into();
+            src * rate
+        };
+        (scaled(x), scaled(y), scaled(z))
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct RawData {
@@ -22,9 +46,15 @@ pub struct GyroData {
 }
 
 impl GyroData {
-    pub fn scale(&self, fs: GyroFullScale) -> GyroInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
-        GyroInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
+    pub fn scale<V>(&self, fs: GyroFullScale) -> GyroInfo<V>
+    where
+        V: Mul<Output = V>,
+        V: Div<Output = V>,
+        V: From<i32>,
+        V: Copy,
+    {
+        let (x, y, z) = fs.scaled(self.x, self.y, self.z);
+        GyroInfo::new(x, y, z)
     }
 }
 
@@ -37,10 +67,9 @@ pub enum GyroFullScale {
     Deg2000,
 }
 
-impl GyroFullScale {
-    pub fn max(&self) -> f32 {
-        let s = 1 << (*self as u8);
-        250.0 * s as f32
+impl FullScale for GyroFullScale {
+    fn max(&self) -> i32 {
+        250 << (*self as u8)
     }
 }
 
@@ -52,9 +81,15 @@ pub struct AccelData {
 }
 
 impl AccelData {
-    pub fn scale(&self, fs: AccelFullScale) -> AccelInfo {
-        let scaled = |v| v as f32 * fs.max() * 2.0 / RESOLUTION;
-        AccelInfo::new(scaled(self.x), scaled(self.y), scaled(self.z))
+    pub fn scale<V>(&self, fs: AccelFullScale) -> AccelInfo<V>
+    where
+        V: Mul<Output = V>,
+        V: Div<Output = V>,
+        V: From<i32>,
+        V: Copy,
+    {
+        let (x, y, z) = fs.scaled(self.x, self.y, self.z);
+        AccelInfo::new(x, y, z)
     }
 }
 
@@ -67,10 +102,9 @@ pub enum AccelFullScale {
     G16,
 }
 
-impl AccelFullScale {
-    pub fn max(&self) -> f32 {
-        let s = 1 << (*self as u8 + 1);
-        s as f32
+impl FullScale for AccelFullScale {
+    fn max(&self) -> i32 {
+        2 << (*self as u8)
     }
 }
 
@@ -80,7 +114,9 @@ pub struct FifoCount(u16);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::*;
     use num_traits::FromPrimitive;
+    use rand::prelude::*;
 
     #[test]
     fn accel_fs_as_u8() {
@@ -108,17 +144,59 @@ mod tests {
 
     #[test]
     fn accel_fs_max() {
-        assert_eq!(AccelFullScale::G2.max(), 2.0);
-        assert_eq!(AccelFullScale::G4.max(), 4.0);
-        assert_eq!(AccelFullScale::G8.max(), 8.0);
-        assert_eq!(AccelFullScale::G16.max(), 16.0);
+        assert_eq!(AccelFullScale::G2.max(), 2);
+        assert_eq!(AccelFullScale::G4.max(), 4);
+        assert_eq!(AccelFullScale::G8.max(), 8);
+        assert_eq!(AccelFullScale::G16.max(), 16);
     }
 
     #[test]
     fn gyro_fs_max() {
-        assert_eq!(GyroFullScale::Deg250.max(), 250.0);
-        assert_eq!(GyroFullScale::Deg500.max(), 500.0);
-        assert_eq!(GyroFullScale::Deg1000.max(), 1000.0);
-        assert_eq!(GyroFullScale::Deg2000.max(), 2000.0);
+        assert_eq!(GyroFullScale::Deg250.max(), 250);
+        assert_eq!(GyroFullScale::Deg500.max(), 500);
+        assert_eq!(GyroFullScale::Deg1000.max(), 1000);
+        assert_eq!(GyroFullScale::Deg2000.max(), 2000);
+    }
+
+    #[test]
+    fn accel_scaled() {
+        let mut rnd = rand::thread_rng();
+        use AccelFullScale::*;
+        for fs in [G2, G4, G8, G16] {
+            for _ in 0..100 {
+                let scaled = |v: i16| {
+                    let r = (v as f64) * (fs.max() as f64) * 2.0 / 65500.0;
+                    (v, r)
+                };
+                let (a, i) = scaled(rnd.gen());
+                let (b, j) = scaled(rnd.gen());
+                let (c, k) = scaled(rnd.gen());
+                let (x, y, z) = fs.scaled(a, b, c);
+                assert_ulps_eq!(i, x);
+                assert_ulps_eq!(j, y);
+                assert_ulps_eq!(k, z);
+            }
+        }
+    }
+
+    #[test]
+    fn gyro_scaled() {
+        let mut rnd = rand::thread_rng();
+        use GyroFullScale::*;
+        for fs in [Deg250, Deg500, Deg1000, Deg2000] {
+            for _ in 0..100 {
+                let scaled = |v: i16| {
+                    let r = (v as f64) * (fs.max() as f64) * 2.0 / 65500.0;
+                    (v, r)
+                };
+                let (a, i) = scaled(rnd.gen());
+                let (b, j) = scaled(rnd.gen());
+                let (c, k) = scaled(rnd.gen());
+                let (x, y, z) = fs.scaled(a, b, c);
+                assert_ulps_eq!(i, x);
+                assert_ulps_eq!(j, y);
+                assert_ulps_eq!(k, z);
+            }
+        }
     }
 }

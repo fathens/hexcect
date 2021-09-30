@@ -1,6 +1,7 @@
 #![feature(once_cell)]
 
 use measure_units::*;
+use num_traits::*;
 
 #[derive(Clone, Copy, CalcMix, Convertible)]
 #[calcmix(unit_name="m".to_string())]

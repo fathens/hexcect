@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 util = { path = "../util" }
-measure_units = { path = "../measure_units/facade" }
 
 num-traits = "~0.2"
 num-derive = "~0.3"
@@ -18,9 +17,11 @@ embedded-time = "~0.12"
 parking_lot = "~0.11"
 lazy_static = "~1.4"
 backtrace = "~0.3"
+getset = "~0.1"
 
 [dev-dependencies]
 crossterm = "~0.21"
 structopt = "~0.3"
 ctrlc = "~3.2"
 rand = "~0.8"
+approx = "~0.5"
