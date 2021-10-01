@@ -287,6 +287,15 @@ mod tests {
     }
 
     #[test]
+    fn position_convert() {
+        let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
+        let b: Position3D<Millimeters<f64>> = a.apply(|v| v.into());
+        assert_eq!(b.x(), 1000_f64.millimeters());
+        assert_eq!(b.y(), 2000_f64.millimeters());
+        assert_eq!(b.z(), 3000_f64.millimeters());
+    }
+
+    #[test]
     fn gyro_from_info() {
         let info = GyroInfo::new(1_f64, 2_f64, 3_f64);
         let a: Gyro3D<f64> = info.into();
