@@ -1,6 +1,7 @@
 use std::ops::{Add, Div, Mul, Sub};
 
 use super::*;
+use hardware::model::sensor::{AccelInfo, GyroInfo};
 
 use derive_more::Constructor;
 use getset::CopyGetters;
@@ -16,19 +17,19 @@ pub struct Gyro3D<V: Copy + FloatConst> {
     z: AngleVelocity<V>,
 }
 
-// ================================================================
-
-#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
-#[get_copy = "pub"]
-pub struct Accel3D<V: Copy> {
-    x: Accel<V>,
-    y: Accel<V>,
-    z: Accel<V>,
+impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
+    fn from(src: GyroInfo<V>) -> Self {
+        Gyro3D::new(src.x().into(), src.y().into(), src.z().into())
+    }
 }
 
-impl<V: Copy> From<Vector3D<Accel<V>>> for Accel3D<V> {
-    fn from(src: Vector3D<Accel<V>>) -> Self {
-        Accel3D::new(src.x(), src.y(), src.z())
+// ================================================================
+
+pub type Accel3D<V> = Vector3D<Accel<V>>;
+
+impl<V: Copy> From<AccelInfo<V>> for Accel3D<V> {
+    fn from(src: AccelInfo<V>) -> Self {
+        Vector3D::new(src.x().into(), src.y().into(), src.z().into())
     }
 }
 
@@ -40,12 +41,6 @@ pub struct Vector3D<V: Copy> {
     x: V,
     y: V,
     z: V,
-}
-
-impl<V: Copy> From<Accel3D<V>> for Vector3D<Accel<V>> {
-    fn from(src: Accel3D<V>) -> Self {
-        Vector3D::new(src.x(), src.y(), src.z())
-    }
 }
 
 impl<V: Copy> Vector3D<V> {
@@ -289,5 +284,23 @@ mod tests {
         assert_eq!(r.x(), 0.5.meters());
         assert_eq!(r.y(), 1.0.meters());
         assert_eq!(r.z(), 1.5.meters());
+    }
+
+    #[test]
+    fn gyro_from_info() {
+        let info = GyroInfo::new(1_f64, 2_f64, 3_f64);
+        let a: Gyro3D<f64> = info.into();
+        assert_eq!(a.x(), AngleVelocity::from(1_f64));
+        assert_eq!(a.y(), AngleVelocity::from(2_f64));
+        assert_eq!(a.z(), AngleVelocity::from(3_f64));
+    }
+
+    #[test]
+    fn accel_from_info() {
+        let info = AccelInfo::new(1_f64, 2_f64, 3_f64);
+        let a: Accel3D<f64> = info.into();
+        assert_eq!(a.x(), Accel::from(1_f64));
+        assert_eq!(a.y(), Accel::from(2_f64));
+        assert_eq!(a.z(), Accel::from(3_f64));
     }
 }
