@@ -144,25 +144,33 @@ where
 
 impl<V: Copy, O: Copy> Mul<O> for Position3D<V>
 where
-    V: Mul<O>,
-    V::Output: Copy,
+    V: Mul<Scalar<O>>,
+    V::Output: Into<UnitsMul<O, V, Scalar<O>>>,
+    V: From<O>,
+    O: Into<Scalar<O>>,
 {
-    type Output = Position3D<V::Output>;
+    type Output = Position3D<V>;
 
     fn mul(self, rhs: O) -> Self::Output {
-        Position3D::new(self.x * rhs, self.y * rhs, self.z * rhs)
+        let s: Scalar<O> = rhs.into();
+        let f = |v: V| (v * s).into().scalar();
+        Position3D::new(f(self.x), f(self.y), f(self.z))
     }
 }
 
 impl<V: Copy, O: Copy> Div<O> for Position3D<V>
 where
-    V: Div<O>,
-    V::Output: Copy,
+    V: Div<Scalar<O>>,
+    V::Output: Into<UnitsDiv<O, V, Scalar<O>>>,
+    V: From<O>,
+    O: Into<Scalar<O>>,
 {
-    type Output = Position3D<V::Output>;
+    type Output = Position3D<V>;
 
     fn div(self, rhs: O) -> Self::Output {
-        Position3D::new(self.x / rhs, self.y / rhs, self.z / rhs)
+        let s: Scalar<O> = rhs.into();
+        let f = |v: V| (v / s).into().scalar();
+        Position3D::new(f(self.x), f(self.y), f(self.z))
     }
 }
 
@@ -268,8 +276,7 @@ mod tests {
     #[test]
     fn position_mul() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let b = a * Scalar::from(1.5);
-        let r = b.apply(|v| v.scalar());
+        let r = a * 1.5;
         assert_eq!(r.x(), 1.5.meters());
         assert_eq!(r.y(), 3.0.meters());
         assert_eq!(r.z(), 4.5.meters());
@@ -278,8 +285,7 @@ mod tests {
     #[test]
     fn position_div() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let b = a / Scalar::from(2.0);
-        let r = b.apply(|v| v.scalar());
+        let r = a / 2.0;
         assert_eq!(r.x(), 0.5.meters());
         assert_eq!(r.y(), 1.0.meters());
         assert_eq!(r.z(), 1.5.meters());
