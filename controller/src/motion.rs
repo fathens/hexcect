@@ -54,38 +54,3 @@ impl<V: Copy> Posture<V> {
         todo!()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use embedded_hal::timer::CountDown;
-    use linux_embedded_hal::SysTimer;
-    use num_traits::NumCast;
-    use std::time::{Duration, Instant};
-
-    fn to_sec<V>(d: Duration) -> Nanoseconds<V>
-    where
-        V: NumCast,
-    {
-        let v = V::from(d.as_nanos()).unwrap();
-        Nanoseconds::from(v)
-    }
-
-    #[test]
-    fn from_dur() {
-        let a = Instant::now();
-        let mut timer = SysTimer::new();
-        timer.start(Duration::from_micros(1));
-        nb::block!(timer.wait()).unwrap();
-        let b = Instant::now();
-        let dur = b - a;
-
-        let r: Seconds<f64> = to_sec(dur).into();
-        let e = r - Duration::from_nanos(800).as_secs_f64();
-        dbg!(r);
-        dbg!(e);
-        assert!(0.000001_f64 <= r.into());
-        assert!(0.000001_f64 >= e.into());
-    }
-}
