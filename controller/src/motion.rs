@@ -37,8 +37,9 @@ impl<V: Copy + FloatConst> Posture<V> {
         }
     }
 
-    pub fn next(self, accel: Accel3D<V>, _gyro: Gyro3D<V>) -> Self
+    pub fn next(self, accel: Accel3D<V>, gyro: Gyro3D<V>) -> Self
     where
+        V: std::fmt::Debug,
         V: Float,
         V: FromPrimitive,
         V: From<Scalar<V>>,
@@ -49,9 +50,18 @@ impl<V: Copy + FloatConst> Posture<V> {
         V: From<Nanoseconds<V>>,
     {
         let dur: Milliseconds<V> = (Instant::now() - self.timestamp).into();
-        let _speed = self
+        let speed = self
             .prev_accel
-            .combine(accel, |p, n| integral_accel(dur, p, n));
-        todo!()
+            .combine(accel.clone(), |p, n| integral_accel(dur, p, n));
+
+        // TODO 仮の戻り値
+        Self {
+            bottom: self.bottom,
+            pos: self.pos,
+            movement: self.movement + speed,
+            prev_accel: accel,
+            prev_gyro: gyro,
+            timestamp: Instant::now(),
+        }
     }
 }
