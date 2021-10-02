@@ -235,17 +235,17 @@ mod tests {
         let b: Milliseconds<f32> = a.to_milliseconds();
         let c: Seconds<f32> = a.to_seconds();
 
-        assert_eq!(1_f32, a.0);
+        assert_eq!(1_f32, a.to_nanoseconds().0);
         assert_eq!(1_f32, b.to_nanoseconds().0);
         assert_eq!(1_f32, c.to_nanoseconds().0);
 
         assert_eq!(0.00_0001_f32, a.to_milliseconds().0);
-        assert_eq!(0.00_0001_f32, b.0);
+        assert_eq!(0.00_0001_f32, b.to_milliseconds().0);
         assert_eq!(0.00_0001_f32, c.to_milliseconds().0);
 
         assert_eq!(0.00_000_0001_f32, a.to_seconds().0);
         assert_eq!(0.00_000_0001_f32, b.to_seconds().0);
-        assert_eq!(0.00_000_0001_f32, c.0);
+        assert_eq!(0.00_000_0001_f32, c.to_seconds().0);
     }
 
     #[test]
