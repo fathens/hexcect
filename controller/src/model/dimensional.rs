@@ -17,6 +17,12 @@ pub struct Gyro3D<V: Copy + FloatConst> {
     z: AngleVelocity<V>,
 }
 
+impl<V: Copy + FloatConst> Gyro3D<V> {
+    pub fn init(v: AngleVelocity<V>) -> Self {
+        Self::new(v, v, v)
+    }
+}
+
 impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
         Gyro3D::new(src.x().into(), src.y().into(), src.z().into())
@@ -50,6 +56,10 @@ impl<V: Copy> Vector3D<V> {
 
     pub fn apply<U: Copy>(self, f: impl Fn(V) -> U) -> Vector3D<U> {
         Vector3D::new(f(self.x), f(self.y), f(self.z))
+    }
+
+    pub fn combine<U: Copy, W: Copy>(self, o: Vector3D<U>, f: impl Fn(V, U) -> W) -> Vector3D<W> {
+        Vector3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
     }
 }
 
