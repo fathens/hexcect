@@ -1,19 +1,19 @@
 use measure_units::*;
 use num_traits::{Float, FromPrimitive, NumCast};
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
 #[calcmix(unit_name = "s".to_string())]
 #[convertible(Milliseconds ^ 3)]
 #[convertible(Nanoseconds ^ 9)]
 pub struct Seconds<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
 #[calcmix(unit_name = "ms".to_string())]
 #[convertible(Seconds ^ -3)]
 #[convertible(Nanoseconds ^ 6)]
 pub struct Milliseconds<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
 #[calcmix(unit_name = "ms".to_string())]
 #[convertible(Seconds ^ -9)]
 #[convertible(Milliseconds ^ -6)]

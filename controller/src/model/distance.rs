@@ -1,11 +1,11 @@
 use measure_units::*;
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
 #[calcmix(unit_name = "m".to_string())]
 #[convertible(Millimeters ^ 3)]
 pub struct Meters<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
 #[calcmix(unit_name = "mm".to_string())]
 #[convertible(Meters ^ -3)]
 pub struct Millimeters<V>(V);

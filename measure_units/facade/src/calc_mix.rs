@@ -1,3 +1,4 @@
+use crate::traits::FloatStatus;
 use measure_units_derive::*;
 
 use std::lazy::Lazy;
@@ -56,13 +57,13 @@ pub trait CalcMix<V> {
 
 // ================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FloatStatus, CalcMix)]
 #[calcmix(unit_name = "".to_string())]
 pub struct Scalar<V>(V);
 
 // ================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FloatStatus, CalcMix)]
 #[calcmix(unit_name = format!("{}{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsMul<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
@@ -117,7 +118,7 @@ impl<V, A, B, C> UnitsMul<V, A, UnitsDiv<V, B, C>> {
 
 // ================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FloatStatus, CalcMix)]
 #[calcmix(unit_name = format!("{}/{}", *A::unit_name(), *B::unit_name()))]
 pub struct UnitsDiv<V, A, B>(V, PhantomData<A>, PhantomData<B>);
 
