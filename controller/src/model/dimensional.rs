@@ -44,6 +44,10 @@ pub struct Vector3D<V: Copy> {
 }
 
 impl<V: Copy> Vector3D<V> {
+    pub fn init(v: V) -> Self {
+        Self::new(v, v, v)
+    }
+
     pub fn apply<U: Copy>(self, f: impl Fn(V) -> U) -> Vector3D<U> {
         Vector3D::new(f(self.x), f(self.y), f(self.z))
     }
@@ -108,6 +112,10 @@ pub struct Position3D<V: Copy> {
 }
 
 impl<V: Copy> Position3D<V> {
+    pub fn init(v: V) -> Self {
+        Self::new(v, v, v)
+    }
+
     pub fn apply<U: Copy>(self, f: impl Fn(V) -> U) -> Position3D<U> {
         Position3D::new(f(self.x), f(self.y), f(self.z))
     }
