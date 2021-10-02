@@ -71,7 +71,7 @@ where
     type Output = Vector3D<V::Output>;
 
     fn add(self, rhs: Vector3D<O>) -> Self::Output {
-        Vector3D::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+        self.combine(rhs, |a, b| a + b)
     }
 }
 
@@ -83,7 +83,7 @@ where
     type Output = Vector3D<V::Output>;
 
     fn sub(self, rhs: Vector3D<O>) -> Self::Output {
-        Vector3D::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+        self.combine(rhs, |a, b| a - b)
     }
 }
 
@@ -95,7 +95,7 @@ where
     type Output = Vector3D<V::Output>;
 
     fn mul(self, rhs: O) -> Self::Output {
-        Vector3D::new(self.x * rhs, self.y * rhs, self.z * rhs)
+        self.apply(|v| v * rhs)
     }
 }
 
@@ -107,7 +107,7 @@ where
     type Output = Vector3D<V::Output>;
 
     fn div(self, rhs: O) -> Self::Output {
-        Vector3D::new(self.x / rhs, self.y / rhs, self.z / rhs)
+        self.apply(|v| v / rhs)
     }
 }
 
@@ -166,8 +166,7 @@ where
 
     fn mul(self, rhs: O) -> Self::Output {
         let s: Scalar<O> = rhs.into();
-        let f = |v: V| (v * s).into().scalar();
-        Position3D::new(f(self.x), f(self.y), f(self.z))
+        self.apply(|v| (v * s).into().scalar())
     }
 }
 
@@ -182,8 +181,7 @@ where
 
     fn div(self, rhs: O) -> Self::Output {
         let s: Scalar<O> = rhs.into();
-        let f = |v: V| (v / s).into().scalar();
-        Position3D::new(f(self.x), f(self.y), f(self.z))
+        self.apply(|v| (v / s).into().scalar())
     }
 }
 
@@ -191,7 +189,33 @@ where
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_ulps_eq;
+
     use super::*;
+
+    #[test]
+    fn gyro_init() {
+        let a = Gyro3D::init(0_f64.into());
+        assert_eq!(a.x(), 0_f64.into());
+        assert_eq!(a.y(), 0_f64.into());
+        assert_eq!(a.z(), 0_f64.into());
+    }
+
+    #[test]
+    fn accel_init() {
+        let a = Accel3D::init(0_f64.into());
+        assert_eq!(a.x(), 0_f64.into());
+        assert_eq!(a.y(), 0_f64.into());
+        assert_eq!(a.z(), 0_f64.into());
+    }
+
+    #[test]
+    fn position_init() {
+        let a: Position3D<Meters<f64>> = Position3D::init(0_f64.into());
+        assert_eq!(a.x(), 0_f64.into());
+        assert_eq!(a.y(), 0_f64.into());
+        assert_eq!(a.z(), 0_f64.into());
+    }
 
     #[test]
     fn accel_to_vector() {
@@ -203,13 +227,28 @@ mod tests {
     }
 
     #[test]
+    fn vector_combine() {
+        let a = Vector3D::init(1_f64.meters());
+        let b = Vector3D::init(2_f64.seconds());
+        let c = a.combine(b, |a, b| (a + 5_f64.meters()) / b);
+        let v: UnitsDiv<f64, Meters<f64>, Seconds<f64>> = 3_f64.into();
+        assert_eq!(c.x(), v);
+        assert_eq!(c.y(), v);
+        assert_eq!(c.z(), v);
+    }
+
+    #[test]
     fn vector_add() {
         let a = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
+        let b = Vector3D::new(
+            123_f64.millimeters(),
+            234_f64.millimeters(),
+            345_f64.millimeters(),
+        );
         let c = a + b;
-        assert_eq!(c.x(), 11.0.meters());
-        assert_eq!(c.y(), 22.0.meters());
-        assert_eq!(c.z(), 33.0.meters());
+        assert_ulps_eq!(1.123_f64, c.x().into());
+        assert_ulps_eq!(2.234_f64, c.y().into());
+        assert_ulps_eq!(3.345_f64, c.z().into());
     }
 
     #[test]
