@@ -9,7 +9,7 @@ use num_traits::FloatConst;
 
 // ================================================================
 
-#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Gyro3D<V: Copy + FloatConst> {
     x: AngleVelocity<V>,
@@ -35,7 +35,7 @@ impl<V: Copy> From<AccelInfo<V>> for Accel3D<V> {
 
 // ================================================================
 
-#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Vector3D<V: Copy> {
     x: V,
@@ -99,7 +99,7 @@ where
 
 // ================================================================
 
-#[derive(Debug, PartialEq, Eq, Constructor, CopyGetters)]
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Position3D<V: Copy> {
     x: V,
