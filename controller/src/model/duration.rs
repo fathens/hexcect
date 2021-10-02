@@ -195,9 +195,6 @@ mod tests {
     use super::*;
 
     use approx::assert_ulps_eq;
-    use embedded_hal::timer::CountDown;
-    use linux_embedded_hal::SysTimer;
-    use std::time::{Duration as StdDur, Instant};
 
     #[test]
     fn conversions_s_ms() {
@@ -282,7 +279,7 @@ mod tests {
 
     #[test]
     fn from_stddur() {
-        let dur = StdDur::from_micros(1);
+        let dur = std::time::Duration::from_micros(1);
         let a: Nanoseconds<f64> = dur.into();
         let b: Milliseconds<f64> = dur.into();
         let c: Seconds<f64> = dur.into();
@@ -294,22 +291,5 @@ mod tests {
         assert_eq!(dur, a.into());
         assert_eq!(dur, b.into());
         assert_eq!(dur, c.into());
-    }
-
-    #[test]
-    fn real_dur() {
-        let a = Instant::now();
-        let mut timer = SysTimer::new();
-        timer.start(StdDur::from_micros(100));
-        nb::block!(timer.wait()).unwrap();
-        let b = Instant::now();
-        let dur = b - a;
-
-        let r: Seconds<f64> = dur.into();
-        let e = r - StdDur::from_micros(1).as_secs_f64();
-        dbg!(r);
-        dbg!(e);
-        assert!(0.00_01_f64 <= r.into());
-        assert!(0.00_01_f64 >= e.into());
     }
 }
