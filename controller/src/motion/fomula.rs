@@ -24,31 +24,28 @@ where
     V: From<Seconds<V>>,
     D: Duration<V>,
 {
-    let (same_sign, prev_is_zero, next_is_zero) = {
-        let p_v: V = prev.into();
-        let n_v: V = next.into();
-        (p_v.signum() == n_v.signum(), p_v.is_zero(), n_v.is_zero())
-    };
-
-    if same_sign {
+    if prev.is_sign_positive() == next.is_sign_positive() {
         get_speed(half(prev + next), dur.to_seconds())
     } else {
+        let a_p = prev.abs();
+        let a_n = next.abs();
+
         let s = dur.to_seconds();
-        let a = if prev_is_zero {
+        let a = if prev.is_zero() {
             V::zero().into()
-        } else if next_is_zero {
+        } else if next.is_zero() {
             get_speed(half(prev), s)
         } else {
-            let s = s * (prev / next).reduction();
+            let s = s * (a_p / (a_p + a_n)).reduction();
             get_speed(half(prev), s.scalar())
         };
-        let b = if next_is_zero {
+        let b = if next.is_zero() {
             V::zero().into()
-        } else if prev_is_zero {
-            get_speed(half(prev), s)
+        } else if prev.is_zero() {
+            get_speed(half(next), s)
         } else {
-            let s = s * (next / prev).reduction();
-            get_speed(half(prev), s.scalar())
+            let s = s * (a_n / (a_p + a_n)).reduction();
+            get_speed(half(next), s.scalar())
         };
         a + b
     }
@@ -62,4 +59,54 @@ where
 {
     let two: Scalar<V> = (V::one() + V::one()).into();
     (a / two).scalar()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn integral_accel_trapezoid_positive() {
+        let dur: Seconds<f32> = 1.0.into();
+        let prev: Accel<f32> = 3.0.into();
+        let next: Accel<f32> = 6.0.into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, 4.5.into());
+    }
+
+    #[test]
+    fn integral_accel_trapezoid_negative() {
+        let dur: Seconds<f32> = 1.0.into();
+        let prev: Accel<f32> = (-3.0).into();
+        let next: Accel<f32> = (-6.0).into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, (-4.5).into());
+    }
+
+    #[test]
+    fn integral_accel_prev_only() {
+        let dur: Seconds<f32> = 1.0.into();
+        let prev: Accel<f32> = 3.0.into();
+        let next: Accel<f32> = 0.0.into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, 1.5.into());
+    }
+
+    #[test]
+    fn integral_accel_next_only() {
+        let dur: Seconds<f32> = 1.0.into();
+        let prev: Accel<f32> = 0.0.into();
+        let next: Accel<f32> = 4.0.into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, 2.0.into());
+    }
+
+    #[test]
+    fn integral_accel_triangles() {
+        let dur: Seconds<f32> = 3.0.into();
+        let prev: Accel<f32> = (-2.0).into();
+        let next: Accel<f32> = 4.0.into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, 3.0.into());
+    }
 }
