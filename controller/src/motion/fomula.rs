@@ -22,32 +22,22 @@ where
     V: From<Accel<V>>,
     V: From<Scalar<V>>,
     V: From<Seconds<V>>,
+    D: Copy,
     D: Duration<V>,
 {
     if prev.is_sign_positive() == next.is_sign_positive() {
         get_speed(half(prev + next), dur.to_seconds())
     } else {
-        let a_p = prev.abs();
-        let a_n = next.abs();
+        let in_rate = |a: Accel<V>| {
+            if a.is_zero() {
+                V::zero().into()
+            } else {
+                let r = (a.abs() / (prev.abs() + next.abs())).reduction();
+                get_speed(half(a), (dur.to_seconds() * r).scalar())
+            }
+        };
 
-        let s = dur.to_seconds();
-        let a = if prev.is_zero() {
-            V::zero().into()
-        } else if next.is_zero() {
-            get_speed(half(prev), s)
-        } else {
-            let s = s * (a_p / (a_p + a_n)).reduction();
-            get_speed(half(prev), s.scalar())
-        };
-        let b = if next.is_zero() {
-            V::zero().into()
-        } else if prev.is_zero() {
-            get_speed(half(next), s)
-        } else {
-            let s = s * (a_n / (a_p + a_n)).reduction();
-            get_speed(half(next), s.scalar())
-        };
-        a + b
+        in_rate(prev) + in_rate(next)
     }
 }
 
@@ -108,5 +98,14 @@ mod tests {
         let next: Accel<f32> = 4.0.into();
         let r = integral_accel(dur, prev, next);
         assert_eq!(r, 3.0.into());
+    }
+
+    #[test]
+    fn integral_accel_zero() {
+        let dur: Seconds<f32> = 1.0.into();
+        let prev: Accel<f32> = 0.0.into();
+        let next: Accel<f32> = 0.0.into();
+        let r = integral_accel(dur, prev, next);
+        assert_eq!(r, 0.0.into());
     }
 }
