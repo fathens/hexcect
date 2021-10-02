@@ -121,36 +121,42 @@ where
 
 // ---------------------------------------------------------------
 
-impl<V> From<Seconds<V>> for std::time::Duration
+impl<V> From<Seconds<V>> for Option<std::time::Duration>
 where
     V: Float + FromPrimitive,
     V: From<Seconds<V>>,
 {
     fn from(s: Seconds<V>) -> Self {
-        let n = s.to_nanoseconds().0.to_u64().unwrap();
-        std::time::Duration::from_nanos(n)
+        s.to_nanoseconds()
+            .0
+            .to_u64()
+            .map(|n| std::time::Duration::from_nanos(n))
     }
 }
 
-impl<V> From<Milliseconds<V>> for std::time::Duration
+impl<V> From<Milliseconds<V>> for Option<std::time::Duration>
 where
     V: Float + FromPrimitive,
     V: From<Milliseconds<V>>,
 {
     fn from(s: Milliseconds<V>) -> Self {
-        let n = s.to_nanoseconds().0.to_u64().unwrap();
-        std::time::Duration::from_nanos(n)
+        s.to_nanoseconds()
+            .0
+            .to_u64()
+            .map(|n| std::time::Duration::from_nanos(n))
     }
 }
 
-impl<V> From<Nanoseconds<V>> for std::time::Duration
+impl<V> From<Nanoseconds<V>> for Option<std::time::Duration>
 where
     V: Float + FromPrimitive,
     V: From<Nanoseconds<V>>,
 {
     fn from(s: Nanoseconds<V>) -> Self {
-        let n = s.to_nanoseconds().0.to_u64().unwrap();
-        std::time::Duration::from_nanos(n)
+        s.to_nanoseconds()
+            .0
+            .to_u64()
+            .map(|n| std::time::Duration::from_nanos(n))
     }
 }
 
@@ -288,8 +294,15 @@ mod tests {
         assert_eq!(0.001_f64, b.0);
         assert_eq!(0.00_0001_f64, c.0);
 
-        assert_eq!(dur, a.into());
-        assert_eq!(dur, b.into());
-        assert_eq!(dur, c.into());
+        assert_eq!(Some(dur), a.into());
+        assert_eq!(Some(dur), b.into());
+        assert_eq!(Some(dur), c.into());
+    }
+
+    #[test]
+    fn minus_dur() {
+        let a: Seconds<f32> = (-1.2).into();
+        let b: Option<std::time::Duration> = a.into();
+        assert_eq!(b, None);
     }
 }
