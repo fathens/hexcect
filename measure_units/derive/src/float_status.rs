@@ -7,18 +7,43 @@ use syn::DeriveInput;
 pub fn derive(items: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse2(items).unwrap();
     let name = ast.ident;
-    if newtype_inner(&ast.data).is_none() {
-        panic!("{} is not newtype struct.", name);
-    }
-    quote! {
-        impl FloatStatus for #name {
-            fn is_nan(&self) -> bool { self.0.is_nan() }
-            fn is_normal(&self) -> bool { self.0.is_normal() }
-            fn is_subnormal(&self) -> bool { self.0.is_subnormal() }
-            fn is_finite(&self) -> bool { self.0.is_finite() }
-            fn is_infinite(&self) -> bool { self.0.is_infinite() }
-            fn is_sign_positive(&self) -> bool { self.0.is_sign_positive() }
-            fn is_sign_negative(&self) -> bool { self.0.is_sign_negative() }
+    let generics = &ast.generics;
+    let (inner_type, _) = newtype_with_phantoms(&ast.data)
+        .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
+
+    if generics.params.is_empty() {
+        quote! {
+            impl FloatStatus for #name {
+                fn abs(&self) -> Self { Self(self.0.abs()) }
+                fn is_nan(&self) -> bool { self.0.is_nan() }
+                fn is_zero(&self) -> bool { self.0 == 0.0 }
+                fn is_normal(&self) -> bool { self.0.is_normal() }
+                fn is_subnormal(&self) -> bool { self.0.is_subnormal() }
+                fn is_finite(&self) -> bool { self.0.is_finite() }
+                fn is_infinite(&self) -> bool { self.0.is_infinite() }
+                fn is_sign_positive(&self) -> bool { self.0.is_sign_positive() }
+                fn is_sign_negative(&self) -> bool { self.0.is_sign_negative() }
+            }
+        }
+    } else {
+        let gparams = clean_generics(&ast.generics);
+
+        quote! {
+            impl #generics FloatStatus for #name #gparams
+            where
+                #inner_type: num_traits::Float,
+                #inner_type: Into<Self>
+            {
+                fn abs(&self) -> Self { self.0.abs().into() }
+                fn is_nan(&self) -> bool { self.0.is_nan() }
+                fn is_zero(&self) -> bool { self.0.is_zero() }
+                fn is_normal(&self) -> bool { self.0.is_normal() }
+                fn is_subnormal(&self) -> bool { self.0.classify() == std::num::FpCategory::Subnormal }
+                fn is_finite(&self) -> bool { self.0.is_finite() }
+                fn is_infinite(&self) -> bool { self.0.is_infinite() }
+                fn is_sign_positive(&self) -> bool { self.0.is_sign_positive() }
+                fn is_sign_negative(&self) -> bool { self.0.is_sign_negative() }
+            }
         }
     }
 }
@@ -34,9 +59,36 @@ mod tests {
         };
         let b = quote! {
             impl FloatStatus for MyFloat {
+                fn abs(&self) -> Self { Self(self.0.abs()) }
                 fn is_nan(&self) -> bool { self.0.is_nan() }
+                fn is_zero(&self) -> bool { self.0 == 0.0 }
                 fn is_normal(&self) -> bool { self.0.is_normal() }
                 fn is_subnormal(&self) -> bool { self.0.is_subnormal() }
+                fn is_finite(&self) -> bool { self.0.is_finite() }
+                fn is_infinite(&self) -> bool { self.0.is_infinite() }
+                fn is_sign_positive(&self) -> bool { self.0.is_sign_positive() }
+                fn is_sign_negative(&self) -> bool { self.0.is_sign_negative() }
+            }
+        };
+        assert_eq!(derive(a).to_string(), b.to_string());
+    }
+
+    #[test]
+    fn generics_impl() {
+        let a = quote! {
+            struct MyFloat<V, A>(V, PhantomData<A>);
+        };
+        let b = quote! {
+            impl<V, A> FloatStatus for MyFloat<V, A>
+            where
+                V: num_traits::Float,
+                V: Into<Self>
+            {
+                fn abs(&self) -> Self { self.0.abs().into() }
+                fn is_nan(&self) -> bool { self.0.is_nan() }
+                fn is_zero(&self) -> bool { self.0.is_zero() }
+                fn is_normal(&self) -> bool { self.0.is_normal() }
+                fn is_subnormal(&self) -> bool { self.0.classify() == std::num::FpCategory::Subnormal }
                 fn is_finite(&self) -> bool { self.0.is_finite() }
                 fn is_infinite(&self) -> bool { self.0.is_infinite() }
                 fn is_sign_positive(&self) -> bool { self.0.is_sign_positive() }
