@@ -9,23 +9,11 @@ use num_traits::FloatConst;
 
 // ================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
-#[get_copy = "pub"]
-pub struct Gyro3D<V: Copy + FloatConst> {
-    x: AngleVelocity<V>,
-    y: AngleVelocity<V>,
-    z: AngleVelocity<V>,
-}
-
-impl<V: Copy + FloatConst> Gyro3D<V> {
-    pub fn init(v: AngleVelocity<V>) -> Self {
-        Self::new(v, v, v)
-    }
-}
+pub type Gyro3D<V> = Vector3D<AngleVelocity<V>>;
 
 impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
-        Gyro3D::new(src.x().into(), src.y().into(), src.z().into())
+        Vector3D::new(src.x().into(), src.y().into(), src.z().into())
     }
 }
 
@@ -230,7 +218,7 @@ mod tests {
     fn vector_combine() {
         let a = Vector3D::init(1_f64.meters());
         let b = Vector3D::init(2_f64.seconds());
-        let c = a.combine(b, |a, b| (a + 5_f64.meters()) / b);
+        let c = a.combine(&b, |a, b| (a + 5_f64.meters()) / b);
         let v: UnitsDiv<f64, Meters<f64>, Seconds<f64>> = 3_f64.into();
         assert_eq!(c.x(), v);
         assert_eq!(c.y(), v);
@@ -245,7 +233,7 @@ mod tests {
             234_f64.millimeters(),
             345_f64.millimeters(),
         );
-        let c = a + b;
+        let c = a + &b;
         assert_ulps_eq!(1.123_f64, c.x().into());
         assert_ulps_eq!(2.234_f64, c.y().into());
         assert_ulps_eq!(3.345_f64, c.z().into());
@@ -257,7 +245,7 @@ mod tests {
         let b = Accel3D::new(10_f64.into(), 20_f64.into(), 30_f64.into());
         let x: Vector3D<Accel<f64>> = a.into();
         let y: Vector3D<Accel<f64>> = b.into();
-        let r: Accel3D<f64> = (x + y).into();
+        let r: Accel3D<f64> = (x + &y).into();
         assert_eq!(r.x(), 11.0.into());
         assert_eq!(r.y(), 22.0.into());
         assert_eq!(r.z(), 33.0.into());
@@ -267,7 +255,7 @@ mod tests {
     fn vector_sub() {
         let a = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
-        let c = a - b;
+        let c = a - &b;
         assert_eq!(c.x(), (-9.0).meters());
         assert_eq!(c.y(), (-18.0).meters());
         assert_eq!(c.z(), (-27.0).meters());
@@ -279,7 +267,7 @@ mod tests {
         let b = Accel3D::new(10_f64.into(), 20_f64.into(), 30_f64.into());
         let x: Vector3D<Accel<f64>> = a.into();
         let y: Vector3D<Accel<f64>> = b.into();
-        let r: Accel3D<f64> = (x - y).into();
+        let r: Accel3D<f64> = (x - &y).into();
         assert_eq!(r.x(), (-9.0).into());
         assert_eq!(r.y(), (-18.0).into());
         assert_eq!(r.z(), (-27.0).into());
@@ -309,7 +297,7 @@ mod tests {
     fn position_add() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
-        let c = a + b;
+        let c = a + &b;
         assert_eq!(c.x(), 11.0.meters());
         assert_eq!(c.y(), 22.0.meters());
         assert_eq!(c.z(), 33.0.meters());
@@ -319,7 +307,7 @@ mod tests {
     fn position_sub() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
-        let c = a - b;
+        let c = a - &b;
         assert_eq!(c.x(), (-9.0).meters());
         assert_eq!(c.y(), (-18.0).meters());
         assert_eq!(c.z(), (-27.0).meters());

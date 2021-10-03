@@ -1,39 +1,36 @@
-use std::ops::Div;
+use std::ops::Add;
 
 use crate::model::*;
 use measure_units::*;
 
-use num_traits::Float;
+use num_traits::{Float, FloatConst, FromPrimitive};
 
-pub fn get_speed<V>(accel: Accel<V>, time: Seconds<V>) -> Speed<V>
-where
-    V: num_traits::Float,
-    V: From<Seconds<V>>,
-    V: From<Accel<V>>,
-{
-    let a = time * accel; // S * ((M / S) / S)
-    a.infuse_nmr().reduction_left()
-}
-
-pub fn integral_accel<V, D>(dur: D, prev: Accel<V>, next: Accel<V>) -> Speed<V>
+pub fn integral_dur<V, A, D>(dur: D, prev: UnitsDiv<V, A, D>, next: UnitsDiv<V, A, D>) -> A
 where
     V: Float,
-    V: From<Speed<V>>,
-    V: From<Accel<V>>,
+    V: FromPrimitive,
+    V: From<UnitsDiv<V, A, D>>,
     V: From<Scalar<V>>,
-    V: From<Seconds<V>>,
+    V: From<D>,
+    A: Copy,
+    A: From<V>,
+    A: CalcMix<V>,
+    A: Add<Output = A>,
     D: Copy,
+    D: From<V>,
+    D: CalcMix<V>,
     D: Duration<V>,
 {
     if prev.is_sign_positive() == next.is_sign_positive() {
-        get_speed(half(prev + next), dur.to_seconds())
+        product_dur(half(prev + next), dur)
     } else {
-        let in_rate = |a: Accel<V>| {
+        let in_rate = |a: UnitsDiv<V, A, D>| {
             if a.is_zero() {
                 V::zero().into()
             } else {
-                let r = (a.abs() / (prev.abs() + next.abs())).reduction();
-                get_speed(half(a), (dur.to_seconds() * r).scalar())
+                let total = prev.abs() + next.abs();
+                let r = (a.abs() / total).reduction();
+                product_dur(half(a), dur.calc_mul(r).scalar())
             }
         };
 
@@ -41,14 +38,37 @@ where
     }
 }
 
+pub fn rotate<V, A>(_src: Vector3D<A>, _d: Vector3D<Degrees<V>>) -> Vector3D<A>
+where
+    V: Float,
+    V: FloatConst,
+    A: Copy,
+{
+    todo!()
+}
+
+fn product_dur<V, A, D>(moving: UnitsDiv<V, A, D>, dur: D) -> A
+where
+    V: Float,
+    V: From<UnitsDiv<V, A, D>>,
+    V: From<D>,
+    A: From<V>,
+    D: CalcMix<V>,
+{
+    let a = dur.calc_mul(moving); // S * (A / S)
+    a.infuse_nmr().reduction_left()
+}
+
 fn half<V, C>(a: C) -> C
 where
     V: Float,
+    V: From<C>,
+    V: From<Scalar<V>>,
     C: From<V>,
-    C: Div<Scalar<V>, Output = UnitsDiv<V, C, Scalar<V>>>,
+    C: CalcMix<V>,
 {
     let two: Scalar<V> = (V::one() + V::one()).into();
-    (a / two).scalar()
+    a.calc_div(two).scalar()
 }
 
 #[cfg(test)]
@@ -60,7 +80,7 @@ mod tests {
         let dur: Seconds<f32> = 1.0.into();
         let prev: Accel<f32> = 3.0.into();
         let next: Accel<f32> = 6.0.into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, 4.5.into());
     }
 
@@ -69,7 +89,7 @@ mod tests {
         let dur: Seconds<f32> = 1.0.into();
         let prev: Accel<f32> = (-3.0).into();
         let next: Accel<f32> = (-6.0).into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, (-4.5).into());
     }
 
@@ -78,7 +98,7 @@ mod tests {
         let dur: Seconds<f32> = 1.0.into();
         let prev: Accel<f32> = 3.0.into();
         let next: Accel<f32> = 0.0.into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, 1.5.into());
     }
 
@@ -87,7 +107,7 @@ mod tests {
         let dur: Seconds<f32> = 1.0.into();
         let prev: Accel<f32> = 0.0.into();
         let next: Accel<f32> = 4.0.into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, 2.0.into());
     }
 
@@ -96,7 +116,7 @@ mod tests {
         let dur: Seconds<f32> = 3.0.into();
         let prev: Accel<f32> = (-2.0).into();
         let next: Accel<f32> = 4.0.into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, 3.0.into());
     }
 
@@ -105,7 +125,7 @@ mod tests {
         let dur: Seconds<f32> = 1.0.into();
         let prev: Accel<f32> = 0.0.into();
         let next: Accel<f32> = 0.0.into();
-        let r = integral_accel(dur, prev, next);
+        let r = integral_dur(dur, prev, next);
         assert_eq!(r, 0.0.into());
     }
 }

@@ -38,28 +38,35 @@ impl<V: Copy + FloatConst> Posture<V> {
 
     pub fn next(self, accel: Accel3D<V>, gyro: Gyro3D<V>) -> Self
     where
-        V: std::fmt::Debug,
         V: Float,
         V: FromPrimitive,
         V: From<Scalar<V>>,
+        V: From<Degrees<V>>,
+        V: From<AngleVelocity<V>>,
         V: From<Accel<V>>,
         V: From<Speed<V>>,
         V: From<Seconds<V>>,
         V: From<Milliseconds<V>>,
         V: From<Nanoseconds<V>>,
     {
-        let next = accel - &self.gravity;
-        let dur: Milliseconds<V> = (Instant::now() - self.timestamp).into();
+        let dur: Seconds<V> = (Instant::now() - self.timestamp).into();
+
+        let rotation = self
+            .prev_gyro
+            .combine(&gyro, |p, n| integral_dur(dur, p, n));
+        let next_gravigy = rotate(self.gravity.clone(), rotation);
+
+        let next_accel = accel - &self.gravity;
         let speed = self
             .prev_accel
-            .combine(&next, |p, n| integral_accel(dur, p, n));
+            .combine(&next_accel, |p, n| integral_dur(dur, p, n));
 
         // TODO 仮の戻り値
         Self {
-            gravity: self.gravity,
+            gravity: next_gravigy,
             pos: self.pos,
             movement: self.movement + &speed,
-            prev_accel: next,
+            prev_accel: next_accel,
             prev_gyro: gyro,
             timestamp: Instant::now(),
         }

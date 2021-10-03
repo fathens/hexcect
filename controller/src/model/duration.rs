@@ -130,7 +130,7 @@ where
         s.to_nanoseconds()
             .0
             .to_u64()
-            .map(|n| std::time::Duration::from_nanos(n))
+            .map(std::time::Duration::from_nanos)
     }
 }
 
@@ -143,7 +143,7 @@ where
         s.to_nanoseconds()
             .0
             .to_u64()
-            .map(|n| std::time::Duration::from_nanos(n))
+            .map(std::time::Duration::from_nanos)
     }
 }
 
@@ -156,7 +156,7 @@ where
         s.to_nanoseconds()
             .0
             .to_u64()
-            .map(|n| std::time::Duration::from_nanos(n))
+            .map(std::time::Duration::from_nanos)
     }
 }
 
