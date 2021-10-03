@@ -12,8 +12,7 @@ use std::time::Instant;
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Getters)]
 #[get = "pub"]
 pub struct Posture<V: Copy + FloatConst> {
-    /// direction to bottom
-    bottom: Vector3D<V>,
+    gravity: Accel3D<V>,
     pos: Position3D<Millimeters<V>>,
     movement: Vector3D<Speed<V>>,
     prev_accel: Accel3D<V>,
@@ -28,7 +27,7 @@ impl<V: Copy + FloatConst> Posture<V> {
         V: From<Accel<V>>,
     {
         Self {
-            bottom: accel.apply(|v| v.into()),
+            gravity: accel,
             pos: Position3D::init(V::zero().into()),
             movement: Vector3D::init(V::zero().into()),
             prev_accel: Accel3D::init(V::zero().into()),
@@ -49,17 +48,18 @@ impl<V: Copy + FloatConst> Posture<V> {
         V: From<Milliseconds<V>>,
         V: From<Nanoseconds<V>>,
     {
+        let next = accel - &self.gravity;
         let dur: Milliseconds<V> = (Instant::now() - self.timestamp).into();
         let speed = self
             .prev_accel
-            .combine(accel.clone(), |p, n| integral_accel(dur, p, n));
+            .combine(&next, |p, n| integral_accel(dur, p, n));
 
         // TODO 仮の戻り値
         Self {
-            bottom: self.bottom,
+            gravity: self.gravity,
             pos: self.pos,
-            movement: self.movement + speed,
-            prev_accel: accel,
+            movement: self.movement + &speed,
+            prev_accel: next,
             prev_gyro: gyro,
             timestamp: Instant::now(),
         }

@@ -58,31 +58,31 @@ impl<V: Copy> Vector3D<V> {
         Vector3D::new(f(self.x), f(self.y), f(self.z))
     }
 
-    pub fn combine<U: Copy, W: Copy>(self, o: Vector3D<U>, f: impl Fn(V, U) -> W) -> Vector3D<W> {
+    pub fn combine<U: Copy, W: Copy>(self, o: &Vector3D<U>, f: impl Fn(V, U) -> W) -> Vector3D<W> {
         Vector3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
     }
 }
 
-impl<V: Copy, O: Copy> Add<Vector3D<O>> for Vector3D<V>
+impl<V: Copy, O: Copy> Add<&Vector3D<O>> for Vector3D<V>
 where
     V: Add<O>,
     V::Output: Copy,
 {
     type Output = Vector3D<V::Output>;
 
-    fn add(self, rhs: Vector3D<O>) -> Self::Output {
+    fn add(self, rhs: &Vector3D<O>) -> Self::Output {
         self.combine(rhs, |a, b| a + b)
     }
 }
 
-impl<V: Copy, O: Copy> Sub<Vector3D<O>> for Vector3D<V>
+impl<V: Copy, O: Copy> Sub<&Vector3D<O>> for Vector3D<V>
 where
     V: Sub<O>,
     V::Output: Copy,
 {
     type Output = Vector3D<V::Output>;
 
-    fn sub(self, rhs: Vector3D<O>) -> Self::Output {
+    fn sub(self, rhs: &Vector3D<O>) -> Self::Output {
         self.combine(rhs, |a, b| a - b)
     }
 }
@@ -131,26 +131,26 @@ impl<V: Copy> Position3D<V> {
     }
 }
 
-impl<V: Copy, O: Copy> Add<Vector3D<O>> for Position3D<V>
+impl<V: Copy, O: Copy> Add<&Vector3D<O>> for Position3D<V>
 where
     V: Add<O>,
     V::Output: Copy,
 {
     type Output = Position3D<V::Output>;
 
-    fn add(self, rhs: Vector3D<O>) -> Self::Output {
+    fn add(self, rhs: &Vector3D<O>) -> Self::Output {
         Position3D::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
 }
 
-impl<V: Copy, O: Copy> Sub<Vector3D<O>> for Position3D<V>
+impl<V: Copy, O: Copy> Sub<&Vector3D<O>> for Position3D<V>
 where
     V: Sub<O>,
     V::Output: Copy,
 {
     type Output = Position3D<V::Output>;
 
-    fn sub(self, rhs: Vector3D<O>) -> Self::Output {
+    fn sub(self, rhs: &Vector3D<O>) -> Self::Output {
         Position3D::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
     }
 }
