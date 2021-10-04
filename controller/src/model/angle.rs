@@ -31,6 +31,19 @@ where
 #[convertible(Degrees = V::from_u8(180).unwrap() / V::PI())]
 pub struct Radians<V: FloatConst>(V);
 
+impl<V: FloatConst> Radians<V>
+where
+    V: Float,
+{
+    pub fn sin(&self) -> Scalar<V> {
+        self.0.sin().into()
+    }
+
+    pub fn cos(&self) -> Scalar<V> {
+        self.0.cos().into()
+    }
+}
+
 impl Angle<f32> for Radians<f32> {
     const MODULO: f32 = core::f32::consts::PI;
 }
@@ -55,6 +68,8 @@ impl Angle<f64> for Degrees<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use rand::Rng;
 
     #[test]
     fn convert() {
@@ -81,5 +96,16 @@ mod tests {
         assert_eq!(Degrees::from(10.0).normalize().0, 10.0);
         assert_eq!(Degrees::from(400.0).normalize().0, 40.0);
         assert_eq!(Degrees::from(-400.0).normalize().0, -40.0);
+    }
+
+    #[test]
+    fn sin_cos() {
+        let mut rnd = rand::thread_rng();
+        for _ in 0..100 {
+            let v: f64 = rnd.gen();
+            let r: Radians<f64> = v.into();
+            assert_eq!(Scalar::from(v.sin()), r.sin());
+            assert_eq!(Scalar::from(v.cos()), r.cos());
+        }
     }
 }
