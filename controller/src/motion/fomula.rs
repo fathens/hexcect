@@ -38,7 +38,7 @@ where
     }
 }
 
-pub fn rotate<V, A>(_src: Vector3D<A>, _d: Vector3D<Degrees<V>>) -> Vector3D<A>
+pub fn rotate<V, A>(_src: &Vector3D<A>, _ds: &Angle3D<Degrees<V>>) -> Vector3D<A>
 where
     V: Float,
     V: FloatConst,

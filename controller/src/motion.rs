@@ -54,7 +54,7 @@ impl<V: Copy + FloatConst> Posture<V> {
         let rotation = self
             .prev_gyro
             .combine(&gyro, |p, n| integral_dur(dur, p, n));
-        let next_gravigy = rotate(self.gravity.clone(), rotation);
+        let next_gravigy = rotate(&self.gravity, &rotation);
 
         let next_accel = accel - &self.gravity;
         let speed = self

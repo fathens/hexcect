@@ -9,11 +9,11 @@ use num_traits::FloatConst;
 
 // ================================================================
 
-pub type Gyro3D<V> = Vector3D<AngleVelocity<V>>;
+pub type Gyro3D<V> = Angle3D<AngleVelocity<V>>;
 
 impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
-        Vector3D::new(src.x().into(), src.y().into(), src.z().into())
+        Angle3D::new(src.x().into(), src.y().into(), src.z().into())
     }
 }
 
@@ -24,6 +24,26 @@ pub type Accel3D<V> = Vector3D<Accel<V>>;
 impl<V: Copy> From<AccelInfo<V>> for Accel3D<V> {
     fn from(src: AccelInfo<V>) -> Self {
         Vector3D::new(src.x().into(), src.y().into(), src.z().into())
+    }
+}
+
+// ================================================================
+
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
+#[get_copy = "pub"]
+pub struct Angle3D<V: Copy> {
+    x: V,
+    y: V,
+    z: V,
+}
+
+impl<V: Copy> Angle3D<V> {
+    pub fn init(v: V) -> Self {
+        Self::new(v, v, v)
+    }
+
+    pub fn combine<U: Copy, W: Copy>(self, o: &Angle3D<U>, f: impl Fn(V, U) -> W) -> Angle3D<W> {
+        Angle3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
     }
 }
 
@@ -356,5 +376,15 @@ mod tests {
         assert_eq!(a.x(), Accel::from(1_f64));
         assert_eq!(a.y(), Accel::from(2_f64));
         assert_eq!(a.z(), Accel::from(3_f64));
+    }
+
+    #[test]
+    fn angle_combine() {
+        let a = Gyro3D::new(1_f64.into(), 2_f64.into(), 3_f64.into());
+        let b = Gyro3D::new(4_f64.into(), 5_f64.into(), 6_f64.into());
+        let c = a.combine(&b, |x, y| x + y);
+        assert_eq!(c.x(), 5_f64.into());
+        assert_eq!(c.y(), 7_f64.into());
+        assert_eq!(c.z(), 9_f64.into());
     }
 }
