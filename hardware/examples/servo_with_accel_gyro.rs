@@ -215,7 +215,7 @@ fn start_gyro(
         values.init(90.0);
 
         for info in rx {
-            for (channel, rate) in values.update([info.x(), info.y(), info.z()]) {
+            for (channel, rate) in values.update([info.roll(), info.pitch(), info.yaw()]) {
                 for_pca9685.send((channel, rate)).unwrap();
             }
         }

@@ -13,7 +13,7 @@ pub type Gyro3D<V> = Angle3D<AngleVelocity<V>>;
 
 impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
-        Angle3D::new(src.x().into(), src.y().into(), src.z().into())
+        Angle3D::new(src.roll().into(), src.pitch().into(), src.yaw().into())
     }
 }
 
@@ -32,9 +32,9 @@ impl<V: Copy> From<AccelInfo<V>> for Accel3D<V> {
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
 #[get_copy = "pub"]
 pub struct Angle3D<V: Copy> {
-    x: V,
-    y: V,
-    z: V,
+    roll: V,
+    pitch: V,
+    yaw: V,
 }
 
 impl<V: Copy> Angle3D<V> {
@@ -43,7 +43,11 @@ impl<V: Copy> Angle3D<V> {
     }
 
     pub fn combine<U: Copy, W: Copy>(self, o: &Angle3D<U>, f: impl Fn(V, U) -> W) -> Angle3D<W> {
-        Angle3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
+        Angle3D::new(
+            f(self.roll, o.roll),
+            f(self.pitch, o.pitch),
+            f(self.yaw, o.yaw),
+        )
     }
 }
 
@@ -204,9 +208,9 @@ mod tests {
     #[test]
     fn gyro_init() {
         let a = Gyro3D::init(0_f64.into());
-        assert_eq!(a.x(), 0_f64.into());
-        assert_eq!(a.y(), 0_f64.into());
-        assert_eq!(a.z(), 0_f64.into());
+        assert_eq!(a.roll(), 0_f64.into());
+        assert_eq!(a.pitch(), 0_f64.into());
+        assert_eq!(a.yaw(), 0_f64.into());
     }
 
     #[test]
@@ -364,9 +368,9 @@ mod tests {
     fn gyro_from_info() {
         let info = GyroInfo::new(1_f64, 2_f64, 3_f64);
         let a: Gyro3D<f64> = info.into();
-        assert_eq!(a.x(), AngleVelocity::from(1_f64));
-        assert_eq!(a.y(), AngleVelocity::from(2_f64));
-        assert_eq!(a.z(), AngleVelocity::from(3_f64));
+        assert_eq!(a.roll(), AngleVelocity::from(1_f64));
+        assert_eq!(a.pitch(), AngleVelocity::from(2_f64));
+        assert_eq!(a.yaw(), AngleVelocity::from(3_f64));
     }
 
     #[test]
@@ -383,8 +387,8 @@ mod tests {
         let a = Gyro3D::new(1_f64.into(), 2_f64.into(), 3_f64.into());
         let b = Gyro3D::new(4_f64.into(), 5_f64.into(), 6_f64.into());
         let c = a.combine(&b, |x, y| x + y);
-        assert_eq!(c.x(), 5_f64.into());
-        assert_eq!(c.y(), 7_f64.into());
-        assert_eq!(c.z(), 9_f64.into());
+        assert_eq!(c.roll(), 5_f64.into());
+        assert_eq!(c.pitch(), 7_f64.into());
+        assert_eq!(c.yaw(), 9_f64.into());
     }
 }
