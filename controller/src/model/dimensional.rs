@@ -5,6 +5,7 @@ use hardware::model::sensor::{AccelInfo, GyroInfo};
 
 use derive_more::Constructor;
 use getset::CopyGetters;
+use nalgebra::{vector, Vector3};
 use num_traits::FloatConst;
 
 // ================================================================
@@ -72,6 +73,35 @@ impl<V: Copy> Vector3D<V> {
 
     pub fn combine<U: Copy, W: Copy>(self, o: &Vector3D<U>, f: impl Fn(V, U) -> W) -> Vector3D<W> {
         Vector3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
+    }
+
+    pub fn as_matrix<T>(&self) -> Vector3<T>
+    where
+        T: From<V>,
+    {
+        vector![self.x.into(), self.y.into(), self.z.into()]
+    }
+}
+
+impl<V, A> From<Vector3<V>> for Vector3D<A>
+where
+    V: Copy,
+    A: Copy,
+    A: From<V>,
+{
+    fn from(src: Vector3<V>) -> Self {
+        Vector3D::new(src[0].into(), src[1].into(), src[2].into())
+    }
+}
+
+impl<V, A> From<Vector3D<A>> for Vector3<V>
+where
+    V: Copy,
+    V: From<A>,
+    A: Copy,
+{
+    fn from(src: Vector3D<A>) -> Self {
+        src.as_matrix()
     }
 }
 
@@ -390,5 +420,14 @@ mod tests {
         assert_eq!(c.roll(), 5_f64.into());
         assert_eq!(c.pitch(), 7_f64.into());
         assert_eq!(c.yaw(), 9_f64.into());
+    }
+
+    #[test]
+    fn vector3d_as_matrix() {
+        let a = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
+        let v: Vector3<f64> = a.clone().into();
+        assert_eq!(v, vector![1_f64, 2_f64, 3_f64]);
+        let r: Vector3D<Meters<f64>> = v.into();
+        assert_eq!(a, r);
     }
 }

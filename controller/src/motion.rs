@@ -6,6 +6,7 @@ use fomula::*;
 use derive_more::Constructor;
 use getset::Getters;
 use measure_units::Scalar;
+use nalgebra::RealField;
 use num_traits::{Float, FloatConst, FromPrimitive, Zero};
 use std::time::Instant;
 
@@ -40,6 +41,7 @@ impl<V: Copy + FloatConst> Posture<V> {
     where
         V: Float,
         V: FromPrimitive,
+        V: RealField,
         V: From<Scalar<V>>,
         V: From<Degrees<V>>,
         V: From<AngleVelocity<V>>,

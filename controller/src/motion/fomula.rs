@@ -3,6 +3,7 @@ use std::ops::Add;
 use crate::model::*;
 use measure_units::*;
 
+use nalgebra::{matrix, RealField};
 use num_traits::{Float, FloatConst, FromPrimitive};
 
 pub fn integral_dur<V, A, D>(dur: D, prev: UnitsDiv<V, A, D>, next: UnitsDiv<V, A, D>) -> A
@@ -38,13 +39,50 @@ where
     }
 }
 
-pub fn rotate<V, A>(_src: &Vector3D<A>, _ds: &Angle3D<Degrees<V>>) -> Vector3D<A>
+pub fn rotate<V, A>(src: &Vector3D<A>, ds: &Angle3D<Degrees<V>>) -> Vector3D<A>
 where
     V: Float,
     V: FloatConst,
+    V: FromPrimitive,
+    V: RealField,
+    V: From<Degrees<V>>,
+    V: From<Scalar<V>>,
+    V: From<A>,
     A: Copy,
+    A: From<V>,
 {
-    todo!()
+    let zero = V::zero();
+    let one = V::one();
+    let sin_cos = |r: Radians<V>| -> (V, V) { (r.sin().into(), r.cos().into()) };
+
+    let roll = {
+        let (sin, cos) = sin_cos(ds.roll().into());
+        matrix![
+            one, zero, zero;
+            zero, cos, -sin;
+            zero, sin, cos;
+        ]
+    };
+
+    let pitch = {
+        let (sin, cos) = sin_cos(ds.pitch().into());
+        matrix![
+            cos, zero, sin;
+            zero, one, zero;
+            -sin, zero, cos;
+        ]
+    };
+
+    let yaw = {
+        let (sin, cos) = sin_cos(ds.yaw().into());
+        matrix![
+            cos, -sin, zero;
+            sin, cos, zero;
+            zero, zero, zero;
+        ]
+    };
+
+    (yaw * pitch * roll * src.as_matrix()).into()
 }
 
 fn product_dur<V, A, D>(moving: UnitsDiv<V, A, D>, dur: D) -> A
@@ -73,6 +111,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_ulps_eq;
+    use nalgebra::vector;
+
     use super::*;
 
     #[test]
@@ -127,5 +168,46 @@ mod tests {
         let next: Accel<f32> = 0.0.into();
         let r = integral_dur(dur, prev, next);
         assert_eq!(r, 0.0.into());
+    }
+
+    #[test]
+    fn rotate_simple() {
+        let src = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
+        let dst = rotate(
+            &src,
+            &Angle3D::new(10_f64.into(), 15_f64.into(), 20_f64.into()),
+        );
+
+        let roll = 10_f64.to_radians();
+        let pitch = 15_f64.to_radians();
+        let yaw = 20_f64.to_radians();
+
+        let r_x = matrix![
+            1.0, 0.0, 0.0;
+            0.0, roll.cos(), -roll.sin();
+            0.0, roll.sin(), roll.cos();
+        ];
+        let r_y = matrix![
+            pitch.cos(), 0.0, pitch.sin();
+            0.0, 1.0, 0.0;
+            -pitch.sin(), 0.0, pitch.cos();
+        ];
+        let r_z = matrix![
+            yaw.cos(), -yaw.sin(), 0.0;
+            yaw.sin(), yaw.cos(), 0.0;
+            0.0, 0.0, 0.0;
+        ];
+        let v = vector![1_f64, 2_f64, 3_f64];
+
+        let check = |a: nalgebra::Vector3<f64>| {
+            assert_ulps_eq!(a[0], dst.x().into());
+            assert_ulps_eq!(a[1], dst.y().into());
+            assert_ulps_eq!(a[2], dst.z().into());
+        };
+
+        check(r_z * r_y * r_x * v);
+        check(r_z * r_y * (r_x * v));
+        check(r_z * (r_y * (r_x * v)));
+        check(r_z * (r_y * r_x) * v);
     }
 }
