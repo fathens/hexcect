@@ -202,11 +202,18 @@ mod tests {
 
     use approx::assert_ulps_eq;
 
+    fn as_uint<V: Into<f64>, T: From<u64>>(v: V) -> T {
+        <u64 as NumCast>::from(v.into()).unwrap().into()
+    }
+
     #[test]
     fn conversions_s_ms() {
         let a: Seconds<f64> = 1.0_f64.seconds();
         let b: Milliseconds<f64> = a.into();
         assert_eq!(b.0, 1000_f64);
+
+        let d = std::time::Duration::from_secs(as_uint(a));
+        assert_eq!(d.as_millis(), as_uint(b));
 
         let a: Milliseconds<f32> = 1.0_f32.milliseconds();
         let b: Seconds<f32> = a.into();
@@ -219,6 +226,9 @@ mod tests {
         let b: Nanoseconds<f64> = a.into();
         assert_eq!(b.0, 1000_000_000_f64);
 
+        let d = std::time::Duration::from_secs(as_uint(a));
+        assert_eq!(d.as_nanos(), as_uint(b));
+
         let a: Nanoseconds<f32> = 1.0_f32.nanoseconds();
         let b: Seconds<f32> = a.into();
         assert_eq!(b.0, 0.00_000_0001_f32);
@@ -229,6 +239,9 @@ mod tests {
         let a: Milliseconds<f64> = 1.0_f64.milliseconds();
         let b: Nanoseconds<f64> = a.into();
         assert_eq!(b.0, 1000_000_f64);
+
+        let d = std::time::Duration::from_millis(as_uint(a));
+        assert_eq!(d.as_nanos(), as_uint(b));
 
         let a: Nanoseconds<f32> = 1.0_f32.nanoseconds();
         let b: Milliseconds<f32> = a.into();
