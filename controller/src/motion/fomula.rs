@@ -194,6 +194,28 @@ mod tests {
     }
 
     #[test]
+    fn gyro_delta_simple() {
+        let e = Radians3D::new(5_f64.into(), 6_f64.into(), 7_f64.into());
+        let base = Radians3D::new(1_f64.into(), 2_f64.into(), 3_f64.into());
+        let delta = gyro_delta(&base, &e);
+
+        let r = base.roll();
+        let p = base.pitch();
+
+        let m = matrix![
+            1.0, r.sin() * p.sin() / p.cos(), r.cos() * p.sin() / p.cos();
+            0.0, r.cos(), -r.sin();
+            0.0, r.sin() / p.cos(), r.cos() / p.cos();
+        ];
+        let v = vector![5_f64, 6_f64, 7_f64];
+        let a = m * v;
+
+        assert_ulps_eq!(a[0], delta.roll().into());
+        assert_ulps_eq!(a[1], delta.pitch().into());
+        assert_ulps_eq!(a[2], delta.yaw().into());
+    }
+
+    #[test]
     fn rotate_simple() {
         let src = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let dst = rotate(
