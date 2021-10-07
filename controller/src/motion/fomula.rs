@@ -210,9 +210,9 @@ mod tests {
         let v = vector![5_f64, 6_f64, 7_f64];
         let a = m * v;
 
-        assert_ulps_eq!(a[0], delta.roll().into());
-        assert_ulps_eq!(a[1], delta.pitch().into());
-        assert_ulps_eq!(a[2], delta.yaw().into());
+        assert_ulps_eq!(a.x, delta.roll().into());
+        assert_ulps_eq!(a.y, delta.pitch().into());
+        assert_ulps_eq!(a.z, delta.yaw().into());
     }
 
     #[test]
@@ -245,9 +245,9 @@ mod tests {
         let v = vector![1_f64, 2_f64, 3_f64];
 
         let check = |a: nalgebra::Vector3<f64>| {
-            assert_ulps_eq!(a[0], dst.x().into());
-            assert_ulps_eq!(a[1], dst.y().into());
-            assert_ulps_eq!(a[2], dst.z().into());
+            assert_ulps_eq!(a.x, dst.x().into());
+            assert_ulps_eq!(a.y, dst.y().into());
+            assert_ulps_eq!(a.z, dst.z().into());
         };
 
         check(r_z * r_y * r_x * v);
