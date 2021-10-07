@@ -6,15 +6,70 @@ use hardware::model::sensor::{AccelInfo, GyroInfo};
 use derive_more::Constructor;
 use getset::CopyGetters;
 use nalgebra::{vector, Vector3};
-use num_traits::FloatConst;
+use num_traits::{Float, FloatConst, FromPrimitive};
+
+#[macro_use]
+mod local_macro {
+    macro_rules! impl_gyro {
+        ($t:ident) => {
+            impl<V> Vector3D<$t<V>>
+            where
+                V: num_traits::Float,
+                V: num_traits::FloatConst,
+            {
+                pub fn roll(&self) -> $t<V> {
+                    self.x
+                }
+
+                pub fn pitch(&self) -> $t<V> {
+                    self.y
+                }
+
+                pub fn yaw(&self) -> $t<V> {
+                    self.z
+                }
+            }
+        };
+    }
+}
 
 // ================================================================
 
-pub type Gyro3D<V> = Angle3D<AngleVelocity<V>>;
+pub type Radians3D<V> = Vector3D<Radians<V>>;
+pub type Degrees3D<V> = Vector3D<Degrees<V>>;
+pub type Gyro3D<V> = Vector3D<AngleVelocity<V>>;
+
+impl_gyro!(Radians);
+impl_gyro!(Degrees);
+impl_gyro!(AngleVelocity);
 
 impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
-        Angle3D::new(src.roll().into(), src.pitch().into(), src.yaw().into())
+        Vector3D::new(src.roll().into(), src.pitch().into(), src.yaw().into())
+    }
+}
+
+impl<V> From<Degrees3D<V>> for Radians3D<V>
+where
+    V: Float,
+    V: FloatConst,
+    V: FromPrimitive,
+    V: From<Degrees<V>>,
+{
+    fn from(src: Degrees3D<V>) -> Self {
+        src.apply(|v| v.into())
+    }
+}
+
+impl<V> From<Radians3D<V>> for Degrees3D<V>
+where
+    V: Float,
+    V: FloatConst,
+    V: FromPrimitive,
+    V: From<Radians<V>>,
+{
+    fn from(src: Radians3D<V>) -> Self {
+        src.apply(|v| v.into())
     }
 }
 
@@ -25,30 +80,6 @@ pub type Accel3D<V> = Vector3D<Accel<V>>;
 impl<V: Copy> From<AccelInfo<V>> for Accel3D<V> {
     fn from(src: AccelInfo<V>) -> Self {
         Vector3D::new(src.x().into(), src.y().into(), src.z().into())
-    }
-}
-
-// ================================================================
-
-#[derive(Debug, Clone, PartialEq, Eq, Constructor, CopyGetters)]
-#[get_copy = "pub"]
-pub struct Angle3D<V: Copy> {
-    roll: V,
-    pitch: V,
-    yaw: V,
-}
-
-impl<V: Copy> Angle3D<V> {
-    pub fn init(v: V) -> Self {
-        Self::new(v, v, v)
-    }
-
-    pub fn combine<U: Copy, W: Copy>(self, o: &Angle3D<U>, f: impl Fn(V, U) -> W) -> Angle3D<W> {
-        Angle3D::new(
-            f(self.roll, o.roll),
-            f(self.pitch, o.pitch),
-            f(self.yaw, o.yaw),
-        )
     }
 }
 

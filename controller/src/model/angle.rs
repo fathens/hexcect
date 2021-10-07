@@ -1,10 +1,9 @@
 use measure_units::*;
-use num_traits::{Float, FloatConst, NumAssignOps};
+use num_traits::{Float, FloatConst};
 
 pub trait Angle<F>: From<F> + Into<F>
 where
     F: Float,
-    F: NumAssignOps,
 {
     const MODULO: F;
 
@@ -16,7 +15,7 @@ where
         let mut r = value % round;
 
         if r.abs() > modulo {
-            r += if r.is_sign_positive() { -round } else { round };
+            r = r + if r.is_sign_positive() { -round } else { round };
         }
         if (r - modulo).abs() < F::epsilon() {
             r = -modulo;
@@ -35,12 +34,12 @@ impl<V: FloatConst> Radians<V>
 where
     V: Float,
 {
-    pub fn sin(&self) -> Scalar<V> {
-        self.0.sin().into()
+    pub fn sin(&self) -> V {
+        self.0.sin()
     }
 
-    pub fn cos(&self) -> Scalar<V> {
-        self.0.cos().into()
+    pub fn cos(&self) -> V {
+        self.0.cos()
     }
 }
 
@@ -104,8 +103,8 @@ mod tests {
         for _ in 0..100 {
             let v: f64 = rnd.gen();
             let r: Radians<f64> = v.into();
-            assert_eq!(Scalar::from(v.sin()), r.sin());
-            assert_eq!(Scalar::from(v.cos()), r.cos());
+            assert_eq!(v.sin(), r.sin());
+            assert_eq!(v.cos(), r.cos());
         }
     }
 }

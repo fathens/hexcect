@@ -14,6 +14,7 @@ use std::time::Instant;
 #[get = "pub"]
 pub struct Posture<V: Copy + FloatConst> {
     gravity: Accel3D<V>,
+    angle: Radians3D<V>,
     pos: Position3D<Millimeters<V>>,
     movement: Vector3D<Speed<V>>,
     prev_accel: Accel3D<V>,
@@ -29,6 +30,7 @@ impl<V: Copy + FloatConst> Posture<V> {
     {
         Self {
             gravity: accel,
+            angle: Radians3D::init(V::zero().into()),
             pos: Position3D::init(V::zero().into()),
             movement: Vector3D::init(V::zero().into()),
             prev_accel: Accel3D::init(V::zero().into()),
@@ -44,6 +46,7 @@ impl<V: Copy + FloatConst> Posture<V> {
         V: RealField,
         V: From<Scalar<V>>,
         V: From<Degrees<V>>,
+        V: From<Radians<V>>,
         V: From<AngleVelocity<V>>,
         V: From<Accel<V>>,
         V: From<Speed<V>>,
@@ -53,10 +56,11 @@ impl<V: Copy + FloatConst> Posture<V> {
     {
         let dur: Seconds<V> = (Instant::now() - self.timestamp).into();
 
-        let rotation = self
+        let rotate_epsilon = self
             .prev_gyro
             .combine(&gyro, |p, n| integral_dur(dur, p, n));
-        let next_gravigy = rotate(&self.gravity, &rotation);
+        let delta = gyro_delta(&self.angle, &rotate_epsilon.into());
+        let next_gravigy = rotate(&self.gravity, &delta);
 
         let next_accel = accel - &self.gravity;
         let speed = self
@@ -66,6 +70,7 @@ impl<V: Copy + FloatConst> Posture<V> {
         // TODO 仮の戻り値
         Self {
             gravity: next_gravigy,
+            angle: self.angle + &delta,
             pos: self.pos,
             movement: self.movement + &speed,
             prev_accel: next_accel,

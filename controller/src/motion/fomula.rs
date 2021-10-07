@@ -39,7 +39,30 @@ where
     }
 }
 
-pub fn rotate<V, A>(src: &Vector3D<A>, ds: &Angle3D<Degrees<V>>) -> Vector3D<A>
+pub fn gyro_delta<V>(base: &Radians3D<V>, e: &Radians3D<V>) -> Radians3D<V>
+where
+    V: Float,
+    V: FloatConst,
+    V: RealField,
+    V: From<Radians<V>>,
+{
+    let sin_cos = |r: Radians<V>| (r.sin(), r.cos());
+
+    let (s_r, c_r) = sin_cos(base.roll());
+    let (s_p, c_p) = sin_cos(base.pitch());
+
+    let zero = V::zero();
+    let one = V::one();
+
+    let m = matrix![
+        one, s_r * s_p / c_p, c_r * s_p / c_p;
+        zero, c_r, -s_r;
+        zero, s_r / c_p, c_r / c_p;
+    ];
+    (m * e.as_matrix()).into()
+}
+
+pub fn rotate<V, A>(src: &Vector3D<A>, ds: &Radians3D<V>) -> Vector3D<A>
 where
     V: Float,
     V: FloatConst,
@@ -53,10 +76,10 @@ where
 {
     let zero = V::zero();
     let one = V::one();
-    let sin_cos = |r: Radians<V>| -> (V, V) { (r.sin().into(), r.cos().into()) };
+    let sin_cos = |r: Radians<V>| (r.sin(), r.cos());
 
     let roll = {
-        let (sin, cos) = sin_cos(ds.roll().into());
+        let (sin, cos) = sin_cos(ds.roll());
         matrix![
             one, zero, zero;
             zero, cos, -sin;
@@ -65,7 +88,7 @@ where
     };
 
     let pitch = {
-        let (sin, cos) = sin_cos(ds.pitch().into());
+        let (sin, cos) = sin_cos(ds.pitch());
         matrix![
             cos, zero, sin;
             zero, one, zero;
@@ -74,7 +97,7 @@ where
     };
 
     let yaw = {
-        let (sin, cos) = sin_cos(ds.yaw().into());
+        let (sin, cos) = sin_cos(ds.yaw());
         matrix![
             cos, -sin, zero;
             sin, cos, zero;
@@ -175,7 +198,7 @@ mod tests {
         let src = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let dst = rotate(
             &src,
-            &Angle3D::new(10_f64.into(), 15_f64.into(), 20_f64.into()),
+            &Degrees3D::new(10_f64.into(), 15_f64.into(), 20_f64.into()).into(),
         );
 
         let roll = 10_f64.to_radians();
