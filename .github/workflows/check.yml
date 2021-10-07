@@ -43,7 +43,7 @@ jobs:
       - name: Collect coverage
         run: |
           cargo install grcov
-          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "**/examples/*" -o lcov.info
 
       - name: Upload to Coveralls
         uses: coverallsapp/github-action@master
