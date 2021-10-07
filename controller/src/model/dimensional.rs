@@ -262,9 +262,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_ulps_eq;
-
     use super::*;
+
+    use approx::assert_ulps_eq;
+    use rand::Rng;
 
     #[test]
     fn gyro_init() {
@@ -451,6 +452,28 @@ mod tests {
         assert_eq!(c.roll(), 5_f64.into());
         assert_eq!(c.pitch(), 7_f64.into());
         assert_eq!(c.yaw(), 9_f64.into());
+    }
+
+    #[test]
+    fn degrees_radians() {
+        let mut rnd = rand::thread_rng();
+        for _ in 0..10 {
+            let roll: f64 = rnd.gen();
+            let pitch: f64 = rnd.gen();
+            let yaw: f64 = rnd.gen();
+
+            let d = Degrees3D::new(roll.into(), pitch.into(), yaw.into());
+            let r: Radians3D<f64> = d.into();
+
+            assert_ulps_eq!(roll.to_radians(), r.roll().into());
+            assert_ulps_eq!(pitch.to_radians(), r.pitch().into());
+            assert_ulps_eq!(yaw.to_radians(), r.yaw().into());
+
+            let d: Degrees3D<f64> = r.into();
+            assert_ulps_eq!(roll, d.roll().into());
+            assert_ulps_eq!(pitch, d.pitch().into());
+            assert_ulps_eq!(yaw, d.yaw().into());
+        }
     }
 
     #[test]
