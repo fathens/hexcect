@@ -14,7 +14,7 @@ pub struct Seconds<V>(V);
 pub struct Milliseconds<V>(V);
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
-#[calcmix(unit_name = "ms".to_string())]
+#[calcmix(unit_name = "ns".to_string())]
 #[convertible(Seconds ^ -9)]
 #[convertible(Milliseconds ^ -6)]
 pub struct Nanoseconds<V>(V);
@@ -290,9 +290,9 @@ mod tests {
         let b: Milliseconds<f64> = dur.into();
         let c: Seconds<f64> = dur.into();
 
-        assert_eq!(1000_f64, a.0);
-        assert_eq!(0.001_f64, b.0);
-        assert_eq!(0.00_0001_f64, c.0);
+        assert_eq!(a.to_string(), "1000ns");
+        assert_eq!(b.to_string(), "0.001ms");
+        assert_eq!(c.to_string(), "0.000001s");
 
         assert_eq!(Some(dur), a.into());
         assert_eq!(Some(dur), b.into());
