@@ -26,7 +26,7 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
-#[calcmix(into = [f32, f64], unit_name = "r".to_string())]
+#[calcmix(into = [f32, f64], unit_name = "rad".to_string())]
 #[convertible(Degrees = V::from_u8(180).unwrap() / V::PI())]
 pub struct Radians<V: FloatConst>(V);
 
@@ -106,5 +106,16 @@ mod tests {
             assert_eq!(v.sin(), r.sin());
             assert_eq!(v.cos(), r.cos());
         }
+    }
+
+    #[test]
+    fn additions() {
+        let a: Degrees<f64> = 1_f64.into();
+        let b: Radians<f64> = a.into();
+        assert_eq!((a + b).to_string(), "2°");
+
+        let a: Radians<f64> = 1_f64.into();
+        let b: Degrees<f64> = a.into();
+        assert_eq!((a + b).to_string(), "2rad");
     }
 }
