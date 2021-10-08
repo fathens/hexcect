@@ -7,12 +7,12 @@ use derive_more::Constructor;
 use getset::Getters;
 use measure_units::Scalar;
 use nalgebra::RealField;
-use num_traits::{Float, FloatConst, FromPrimitive, Zero};
+use num_traits::{Float, FromPrimitive, Zero};
 use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Getters)]
 #[get = "pub"]
-pub struct Posture<V: Copy + FloatConst> {
+pub struct Posture<V: Copy + Float> {
     gravity: Accel3D<V>,
     angle: Radians3D<V>,
     pos: Position3D<Millimeters<V>>,
@@ -22,7 +22,7 @@ pub struct Posture<V: Copy + FloatConst> {
     timestamp: Instant,
 }
 
-impl<V: Copy + FloatConst> Posture<V> {
+impl<V: Copy + Float> Posture<V> {
     pub fn init(accel: Accel3D<V>) -> Self
     where
         V: Zero,

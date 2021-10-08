@@ -4,7 +4,7 @@ use crate::model::*;
 use measure_units::*;
 
 use nalgebra::{matrix, RealField};
-use num_traits::{Float, FloatConst, FromPrimitive};
+use num_traits::{Float, FromPrimitive};
 
 pub fn integral_dur<V, A, D>(dur: D, prev: UnitsDiv<V, A, D>, next: UnitsDiv<V, A, D>) -> A
 where
@@ -42,7 +42,6 @@ where
 pub fn gyro_delta<V>(base: &Radians3D<V>, e: &Radians3D<V>) -> Radians3D<V>
 where
     V: Float,
-    V: FloatConst,
     V: RealField,
     V: From<Radians<V>>,
 {
@@ -65,7 +64,6 @@ where
 pub fn rotate<V, A>(src: &Vector3D<A>, ds: &Radians3D<V>) -> Vector3D<A>
 where
     V: Float,
-    V: FloatConst,
     V: FromPrimitive,
     V: RealField,
     V: From<Degrees<V>>,

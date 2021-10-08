@@ -15,12 +15,12 @@ struct Km(f64);
 
 #[derive(Clone, Copy, CalcMix, Convertible)]
 #[calcmix(unit_name="h".to_string())]
-#[convertible(Second = 60.0 * 60.0)]
+#[convertible(Second * 60.0 * 60.0)]
 struct Hour(f64);
 
 #[derive(Clone, Copy, CalcMix, Convertible)]
 #[calcmix(unit_name="s".to_string())]
-#[convertible(Hour = 1.0 / (60.0 * 60.0))]
+#[convertible(Hour * 1.0 / (60.0 * 60.0))]
 struct Second(f64);
 
 #[test]

@@ -35,6 +35,7 @@ pub fn derive(items: TokenStream) -> TokenStream {
 enum ConvRate {
     Expo(TokenStream),
     Real(TokenStream),
+    Func(TokenStream),
 }
 
 impl ConvRate {
@@ -48,7 +49,8 @@ impl ConvRate {
         let rate = TokenStream::from_iter(tokens);
         let conv = match c {
             '^' => ConvRate::Expo(rate),
-            '=' => ConvRate::Real(rate),
+            '*' => ConvRate::Real(rate),
+            '=' => ConvRate::Func(rate),
             c => panic!("Unsupported token: {}", c),
         };
         (target, conv)
@@ -70,6 +72,12 @@ impl ConvRate {
                 if r.is_nan() { panic!("Using NaN as a rate !"); }
                 let a: #inner = src.into();
                 let v = a * r;
+                v.into()
+            },
+            ConvRate::Func(s) => quote! {
+                let f = |v: #inner| #s;
+                let a: #inner = src.into();
+                let v = f(a);
                 v.into()
             },
         }
@@ -112,7 +120,7 @@ mod tests {
         let a = quote! {
             #[convertible(Km ^ -3)]
             #[convertible(Milli ^ 3)]
-            #[convertible(Cm = 100)]
+            #[convertible(Cm * 100)]
             struct Meter(f64);
         };
         let b = quote! {
@@ -171,7 +179,7 @@ mod tests {
     #[test]
     fn expressions() {
         let a = quote! {
-            #[convertible(Degree = 180.0 / core::f64::consts::PI)]
+            #[convertible(Degree * 180.0 / core::f64::consts::PI)]
             struct Radian(f64);
         };
         let b = quote! {
@@ -196,9 +204,34 @@ mod tests {
     }
 
     #[test]
+    fn functions() {
+        let a = quote! {
+            #[convertible(Degree = v.to_degrees())]
+            struct Radian(f64);
+        };
+        let b = quote! {
+            impl From<Radian> for Degree
+            where
+                f64: num_traits::Float,
+                f64: num_traits::FromPrimitive,
+                f64: From<Radian>,
+                f64: Into<Degree>,
+            {
+                fn from(src: Radian) -> Degree {
+                    let f = |v: f64| v.to_degrees();
+                    let a: f64 = src.into();
+                    let v = f(a);
+                    v.into()
+                }
+            }
+        };
+        assert_eq!(derive(a).to_string(), b.to_string());
+    }
+
+    #[test]
     fn generics() {
         let a = quote! {
-            #[convertible(Minute = 1.0/60.0)]
+            #[convertible(Minute * 1.0/60.0)]
             struct Second<V>(V);
         };
         let b = quote! {
@@ -225,7 +258,7 @@ mod tests {
     #[test]
     fn generics_bound() {
         let a = quote! {
-            #[convertible(Minute = 1.0/60.0)]
+            #[convertible(Minute * 1.0/60.0)]
             struct Second<V: FloatConst>(V);
         };
         let b = quote! {

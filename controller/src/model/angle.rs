@@ -1,10 +1,7 @@
 use measure_units::*;
-use num_traits::{Float, FloatConst};
+use num_traits::Float;
 
-pub trait Angle<F>: From<F> + Into<F>
-where
-    F: Float,
-{
+pub trait Angle<F: Float>: From<F> + Into<F> {
     const MODULO: F;
 
     fn normalize(self) -> Self {
@@ -27,13 +24,10 @@ where
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
 #[calcmix(into = [f32, f64], unit_name = "rad".to_string())]
-#[convertible(Degrees = V::from_u8(180).unwrap() / V::PI())]
-pub struct Radians<V: FloatConst>(V);
+#[convertible(Degrees = v.to_degrees())]
+pub struct Radians<V: Float>(V);
 
-impl<V: FloatConst> Radians<V>
-where
-    V: Float,
-{
+impl<V: Float> Radians<V> {
     pub fn sin(&self) -> V {
         self.0.sin()
     }
@@ -53,8 +47,8 @@ impl Angle<f64> for Radians<f64> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
 #[calcmix(into = [f32, f64], unit_name = "°".to_string())]
-#[convertible(Radians = V::PI() / V::from_u8(180).unwrap())]
-pub struct Degrees<V: FloatConst>(V);
+#[convertible(Radians = v.to_radians())]
+pub struct Degrees<V: Float>(V);
 
 impl Angle<f32> for Degrees<f32> {
     const MODULO: f32 = 180.0;

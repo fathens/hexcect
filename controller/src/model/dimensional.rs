@@ -6,7 +6,7 @@ use hardware::model::sensor::{AccelInfo, GyroInfo};
 use derive_more::Constructor;
 use getset::CopyGetters;
 use nalgebra::{vector, Vector3};
-use num_traits::{Float, FloatConst, FromPrimitive};
+use num_traits::{Float, FromPrimitive};
 
 #[macro_use]
 mod local_macro {
@@ -15,7 +15,6 @@ mod local_macro {
             impl<V> Vector3D<$t<V>>
             where
                 V: num_traits::Float,
-                V: num_traits::FloatConst,
             {
                 pub fn roll(&self) -> $t<V> {
                     self.x
@@ -43,7 +42,7 @@ impl_gyro!(Radians);
 impl_gyro!(Degrees);
 impl_gyro!(AngleVelocity);
 
-impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
+impl<V: Copy + Float> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
         Vector3D::new(src.roll().into(), src.pitch().into(), src.yaw().into())
     }
@@ -52,7 +51,6 @@ impl<V: Copy + FloatConst> From<GyroInfo<V>> for Gyro3D<V> {
 impl<V> From<Degrees3D<V>> for Radians3D<V>
 where
     V: Float,
-    V: FloatConst,
     V: FromPrimitive,
     V: From<Degrees<V>>,
 {
@@ -64,7 +62,6 @@ where
 impl<V> From<Radians3D<V>> for Degrees3D<V>
 where
     V: Float,
-    V: FloatConst,
     V: FromPrimitive,
     V: From<Radians<V>>,
 {
