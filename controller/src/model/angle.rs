@@ -1,11 +1,11 @@
 use measure_units::*;
-use num_traits::Float;
+use num_traits::{Float, FloatConst, NumCast};
 
 pub trait Angle<F: Float>: From<F> + Into<F> {
-    const MODULO: F;
+    fn modulo() -> F;
 
     fn normalize(self) -> Self {
-        let modulo: F = Self::MODULO;
+        let modulo: F = Self::modulo();
         let round = modulo + modulo;
 
         let value: F = self.into();
@@ -37,12 +37,15 @@ impl<V: Float> Radians<V> {
     }
 }
 
-impl Angle<f32> for Radians<f32> {
-    const MODULO: f32 = core::f32::consts::PI;
-}
-
-impl Angle<f64> for Radians<f64> {
-    const MODULO: f64 = core::f64::consts::PI;
+impl<V> Angle<V> for Radians<V>
+where
+    V: Float,
+    V: FloatConst,
+    V: From<Radians<V>>,
+{
+    fn modulo() -> V {
+        V::PI()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
@@ -50,12 +53,14 @@ impl Angle<f64> for Radians<f64> {
 #[convertible(Radians = v.to_radians())]
 pub struct Degrees<V: Float>(V);
 
-impl Angle<f32> for Degrees<f32> {
-    const MODULO: f32 = 180.0;
-}
-
-impl Angle<f64> for Degrees<f64> {
-    const MODULO: f64 = 180.0;
+impl<V> Angle<V> for Degrees<V>
+where
+    V: Float,
+    V: From<Degrees<V>>,
+{
+    fn modulo() -> V {
+        <V as NumCast>::from(180).unwrap()
+    }
 }
 
 #[cfg(test)]
