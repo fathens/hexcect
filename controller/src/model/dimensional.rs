@@ -224,6 +224,18 @@ where
     }
 }
 
+impl<V: Copy, O: Copy> Sub<&Position3D<O>> for Position3D<V>
+where
+    V: Sub<O>,
+    V::Output: Copy,
+{
+    type Output = Vector3D<V::Output>;
+
+    fn sub(self, rhs: &Position3D<O>) -> Self::Output {
+        Vector3D::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
+
 impl<V: Copy, O: Copy> Mul<O> for Position3D<V>
 where
     V: Mul<Scalar<O>>,
@@ -379,7 +391,7 @@ mod tests {
     fn position_add() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
-        let c = a + &b;
+        let c: Position3D<Meters<f64>> = a + &b;
         assert_eq!(c.x(), 11.0.meters());
         assert_eq!(c.y(), 22.0.meters());
         assert_eq!(c.z(), 33.0.meters());
@@ -389,16 +401,26 @@ mod tests {
     fn position_sub() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
         let b = Vector3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
-        let c = a - &b;
+        let c: Position3D<Meters<f64>> = a - &b;
         assert_eq!(c.x(), (-9.0).meters());
         assert_eq!(c.y(), (-18.0).meters());
         assert_eq!(c.z(), (-27.0).meters());
     }
 
     #[test]
+    fn position_sub_position() {
+        let a = Position3D::new(10_f64.meters(), 20_f64.meters(), 30_f64.meters());
+        let b = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
+        let c: Vector3D<Meters<f64>> = a - &b;
+        assert_eq!(c.x(), (9.0).meters());
+        assert_eq!(c.y(), (18.0).meters());
+        assert_eq!(c.z(), (27.0).meters());
+    }
+
+    #[test]
     fn position_mul() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let r = a * 1.5;
+        let r: Position3D<Meters<f64>> = a * 1.5;
         assert_eq!(r.x(), 1.5.meters());
         assert_eq!(r.y(), 3.0.meters());
         assert_eq!(r.z(), 4.5.meters());
@@ -407,7 +429,7 @@ mod tests {
     #[test]
     fn position_div() {
         let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let r = a / 2.0;
+        let r: Position3D<Meters<f64>> = a / 2.0;
         assert_eq!(r.x(), 0.5.meters());
         assert_eq!(r.y(), 1.0.meters());
         assert_eq!(r.z(), 1.5.meters());
