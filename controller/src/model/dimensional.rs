@@ -41,7 +41,7 @@ pub type Gyro3D<V> = Vector3D<AngleVelocity<V>>;
 
 impl_gyro!(Radians, Degrees, AngleVelocity);
 
-impl<V: Copy + Float> From<GyroInfo<V>> for Gyro3D<V> {
+impl<V: Float> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
         Vector3D::new(src.roll().into(), src.pitch().into(), src.yaw().into())
     }

@@ -12,7 +12,7 @@ use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Getters)]
 #[get = "pub"]
-pub struct Posture<V: Copy + Float> {
+pub struct Posture<V: Float> {
     gravity: Accel3D<V>,
     angle: Radians3D<V>,
     pos: Position3D<Millimeters<V>>,
@@ -22,7 +22,7 @@ pub struct Posture<V: Copy + Float> {
     timestamp: Instant,
 }
 
-impl<V: Copy + Float> Posture<V> {
+impl<V: Float> Posture<V> {
     pub fn init(accel: Accel3D<V>) -> Self
     where
         V: Zero,
