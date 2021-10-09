@@ -249,8 +249,10 @@ mod tests {
         };
 
         check(r_z * r_y * r_x * v);
+        check((r_z * r_y) * (r_x * v));
         check(r_z * r_y * (r_x * v));
         check(r_z * (r_y * (r_x * v)));
+        check(r_z * (r_y * r_x * v));
         check(r_z * (r_y * r_x) * v);
     }
 }
