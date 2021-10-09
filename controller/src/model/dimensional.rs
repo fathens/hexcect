@@ -1,17 +1,17 @@
+use derive_more::Constructor;
+use getset::CopyGetters;
+use nalgebra::{vector, Vector3};
+use num_traits::{Float, FromPrimitive};
 use std::ops::{Add, Div, Mul, Sub};
 
 use super::*;
 use hardware::model::sensor::{AccelInfo, GyroInfo};
 
-use derive_more::Constructor;
-use getset::CopyGetters;
-use nalgebra::{vector, Vector3};
-use num_traits::{Float, FromPrimitive};
-
 #[macro_use]
 mod local_macro {
     macro_rules! impl_gyro {
-        ($t:ident) => {
+        ($($t:ident),+) => {
+            $(
             impl<V> Vector3D<$t<V>>
             where
                 V: num_traits::Float,
@@ -28,6 +28,7 @@ mod local_macro {
                     self.z
                 }
             }
+            )*
         };
     }
 }
@@ -38,9 +39,7 @@ pub type Radians3D<V> = Vector3D<Radians<V>>;
 pub type Degrees3D<V> = Vector3D<Degrees<V>>;
 pub type Gyro3D<V> = Vector3D<AngleVelocity<V>>;
 
-impl_gyro!(Radians);
-impl_gyro!(Degrees);
-impl_gyro!(AngleVelocity);
+impl_gyro!(Radians, Degrees, AngleVelocity);
 
 impl<V: Copy + Float> From<GyroInfo<V>> for Gyro3D<V> {
     fn from(src: GyroInfo<V>) -> Self {
