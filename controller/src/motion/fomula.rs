@@ -1,10 +1,9 @@
+use nalgebra::{matrix, RealField};
+use num_traits::{Float, FromPrimitive};
 use std::ops::Add;
 
 use crate::model::*;
 use measure_units::*;
-
-use nalgebra::{matrix, RealField};
-use num_traits::{Float, FromPrimitive};
 
 pub fn integral_dur<V, A, D>(dur: D, prev: UnitsDiv<V, A, D>, next: UnitsDiv<V, A, D>) -> A
 where
@@ -40,7 +39,29 @@ where
 }
 
 /**
-ジャイロの微小角を現在の姿勢の回転に足し込む。
+垂直に対する回転を求める。
+See: http://watako-lab.com/2019/02/15/3axis_acc/
+ */
+pub fn vector_angle<F, A>(v: &Vector3D<A>) -> Radians3D<F>
+where
+    A: Copy,
+    F: Float,
+    F: From<A>,
+    F: Into<Radians<F>>,
+{
+    let x: F = v.x().into();
+    let y: F = v.y().into();
+    let z: F = v.z().into();
+
+    let roll = y.atan2(z);
+    let pitch = (-x).atan2((y.powi(2) + z.powi(2)).sqrt());
+    let yaw = F::zero();
+
+    Radians3D::new(roll.into(), pitch.into(), yaw.into())
+}
+
+/**
+ジャイロの微小角を現在の姿勢の回転に足し込む値を算出する。
 See: http://watako-lab.com/2019/02/28/3axis_gyro/
 */
 pub fn gyro_delta<V>(base: &Radians3D<V>, e: &Radians3D<V>) -> Radians3D<V>
@@ -110,28 +131,6 @@ where
     (yaw * pitch * roll * src.as_matrix()).into()
 }
 
-/**
-垂直に対する回転を求める。
-See: http://watako-lab.com/2019/02/15/3axis_acc/
-*/
-pub fn vector_angle<F, A>(v: &Vector3D<A>) -> Radians3D<F>
-where
-    A: Copy,
-    F: Float,
-    F: From<A>,
-    F: Into<Radians<F>>,
-{
-    let x: F = v.x().into();
-    let y: F = v.y().into();
-    let z: F = v.z().into();
-
-    let roll = y.atan2(z);
-    let pitch = (-x).atan2((y.powi(2) + z.powi(2)).sqrt());
-    let yaw = F::zero();
-
-    Radians3D::new(roll.into(), pitch.into(), yaw.into())
-}
-
 fn product_dur<V, A, D>(moving: UnitsDiv<V, A, D>, dur: D) -> A
 where
     V: Float,
@@ -160,6 +159,7 @@ where
 mod tests {
     use approx::assert_ulps_eq;
     use nalgebra::vector;
+    use rand::Rng;
 
     use super::*;
 
@@ -218,67 +218,112 @@ mod tests {
     }
 
     #[test]
-    fn gyro_delta_simple() {
-        let e = Radians3D::new(5_f64.into(), 6_f64.into(), 7_f64.into());
-        let base = Radians3D::new(1_f64.into(), 2_f64.into(), 3_f64.into());
-        let delta = gyro_delta(&base, &e);
+    fn vector_angle_random() {
+        let mut rnd = rand::thread_rng();
+        for _ in 0..100 {
+            let x: f64 = rnd.gen();
+            let y: f64 = rnd.gen();
+            let z: f64 = rnd.gen();
 
-        let r = base.roll();
-        let p = base.pitch();
+            let r = vector_angle(&Accel3D::new(x.into(), y.into(), z.into()));
 
-        let m = matrix![
-            1.0, r.sin() * p.sin() / p.cos(), r.cos() * p.sin() / p.cos();
-            0.0, r.cos(), -r.sin();
-            0.0, r.sin() / p.cos(), r.cos() / p.cos();
-        ];
-        let v = vector![5_f64, 6_f64, 7_f64];
-        let a = m * v;
+            let d_yz = (y.powi(2) + z.powi(2)).sqrt();
 
-        assert_ulps_eq!(a.x, delta.roll().into());
-        assert_ulps_eq!(a.y, delta.pitch().into());
-        assert_ulps_eq!(a.z, delta.yaw().into());
+            let roll = y.atan2(z);
+            let pitch = (-x).atan2(d_yz);
+            let yaw = 0_f64;
+
+            assert_ulps_eq!(roll, r.roll().into());
+            assert_ulps_eq!(pitch, r.pitch().into());
+            assert_ulps_eq!(yaw, r.yaw().into());
+        }
     }
 
     #[test]
-    fn rotate_simple() {
-        let src = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let dst = rotate(
-            &src,
-            &Degrees3D::new(10_f64.into(), 15_f64.into(), 20_f64.into()).into(),
-        );
+    fn gyro_delta_random() {
+        let mut rnd = rand::thread_rng();
+        for _ in 0..100 {
+            let x: f64 = rnd.gen();
+            let y: f64 = rnd.gen();
+            let z: f64 = rnd.gen();
 
-        let roll = 10_f64.to_radians();
-        let pitch = 15_f64.to_radians();
-        let yaw = 20_f64.to_radians();
+            let roll: f64 = rnd.gen();
+            let pitch: f64 = rnd.gen();
+            let yaw: f64 = rnd.gen();
 
-        let r_x = matrix![
-            1.0, 0.0, 0.0;
-            0.0, roll.cos(), -roll.sin();
-            0.0, roll.sin(), roll.cos();
-        ];
-        let r_y = matrix![
-            pitch.cos(), 0.0, pitch.sin();
-            0.0, 1.0, 0.0;
-            -pitch.sin(), 0.0, pitch.cos();
-        ];
-        let r_z = matrix![
-            yaw.cos(), -yaw.sin(), 0.0;
-            yaw.sin(), yaw.cos(), 0.0;
-            0.0, 0.0, 0.0;
-        ];
-        let v = vector![1_f64, 2_f64, 3_f64];
+            let delta = gyro_delta(
+                &Radians3D::new(roll.into(), pitch.into(), yaw.into()),
+                &Radians3D::new(x.into(), y.into(), z.into()),
+            );
 
-        let check = |a: nalgebra::Vector3<f64>| {
-            assert_ulps_eq!(a.x, dst.x().into());
-            assert_ulps_eq!(a.y, dst.y().into());
-            assert_ulps_eq!(a.z, dst.z().into());
-        };
+            let m = {
+                let r = roll;
+                let p = pitch;
+                matrix![
+                    1.0, r.sin() * p.sin() / p.cos(), r.cos() * p.sin() / p.cos();
+                    0.0, r.cos(), -r.sin();
+                    0.0, r.sin() / p.cos(), r.cos() / p.cos();
+                ]
+            };
+            let a = m * vector![x, y, z];
 
-        check(r_z * r_y * r_x * v);
-        check((r_z * r_y) * (r_x * v));
-        check(r_z * r_y * (r_x * v));
-        check(r_z * (r_y * (r_x * v)));
-        check(r_z * (r_y * r_x * v));
-        check(r_z * (r_y * r_x) * v);
+            assert_ulps_eq!(a.x, delta.roll().into());
+            assert_ulps_eq!(a.y, delta.pitch().into());
+            assert_ulps_eq!(a.z, delta.yaw().into());
+        }
+    }
+
+    #[test]
+    fn rotate_random() {
+        let mut rnd = rand::thread_rng();
+        for _ in 0..100 {
+            let x: f64 = rnd.gen();
+            let y: f64 = rnd.gen();
+            let z: f64 = rnd.gen();
+
+            let roll: f64 = rnd.gen();
+            let pitch: f64 = rnd.gen();
+            let yaw: f64 = rnd.gen();
+
+            let src = Vector3D::new(x.meters(), y.meters(), z.meters());
+            let dst = rotate(
+                &src,
+                &Degrees3D::new(roll.into(), pitch.into(), yaw.into()).into(),
+            );
+
+            let roll = roll.to_radians();
+            let pitch = pitch.to_radians();
+            let yaw = yaw.to_radians();
+
+            let m_roll = matrix![
+                1.0, 0.0, 0.0;
+                0.0, roll.cos(), -roll.sin();
+                0.0, roll.sin(), roll.cos();
+            ];
+            let m_pitch = matrix![
+                pitch.cos(), 0.0, pitch.sin();
+                0.0, 1.0, 0.0;
+                -pitch.sin(), 0.0, pitch.cos();
+            ];
+            let m_yaw = matrix![
+                yaw.cos(), -yaw.sin(), 0.0;
+                yaw.sin(), yaw.cos(), 0.0;
+                0.0, 0.0, 0.0;
+            ];
+            let v = vector![x, y, z];
+
+            let check = |a: nalgebra::Vector3<f64>| {
+                assert_ulps_eq!(a.x, dst.x().into());
+                assert_ulps_eq!(a.y, dst.y().into());
+                assert_ulps_eq!(a.z, dst.z().into());
+            };
+
+            check(m_yaw * m_pitch * m_roll * v);
+            check((m_yaw * m_pitch) * (m_roll * v));
+            check(m_yaw * m_pitch * (m_roll * v));
+            check(m_yaw * (m_pitch * (m_roll * v)));
+            check(m_yaw * (m_pitch * m_roll * v));
+            check(m_yaw * (m_pitch * m_roll) * v);
+        }
     }
 }
