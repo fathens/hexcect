@@ -106,6 +106,25 @@ where
     (yaw * pitch * roll * src.as_matrix()).into()
 }
 
+/// 垂直に対する回転を求める。
+pub fn vector_angle<F, A>(v: &Vector3D<A>) -> Radians3D<F>
+where
+    A: Copy,
+    F: Float,
+    F: From<A>,
+    F: Into<Radians<F>>,
+{
+    let x: F = v.x().into();
+    let y: F = v.y().into();
+    let z: F = v.z().into();
+
+    let roll = y.atan2(z);
+    let pitch = (-x).atan2((y.powi(2) + z.powi(2)).sqrt());
+    let yaw = F::zero();
+
+    Radians3D::new(roll.into(), pitch.into(), yaw.into())
+}
+
 fn product_dur<V, A, D>(moving: UnitsDiv<V, A, D>, dur: D) -> A
 where
     V: Float,

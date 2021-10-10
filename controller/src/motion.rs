@@ -7,7 +7,7 @@ use derive_more::Constructor;
 use getset::Getters;
 use measure_units::Scalar;
 use nalgebra::RealField;
-use num_traits::{Float, FromPrimitive, Zero};
+use num_traits::{Float, FromPrimitive};
 use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Getters)]
@@ -23,14 +23,14 @@ pub struct Posture<V: Float> {
 }
 
 impl<V: Float> Posture<V> {
-    pub fn init(accel: Accel3D<V>) -> Self
+    pub fn init(gravity: Accel3D<V>) -> Self
     where
-        V: Zero,
         V: From<Accel<V>>,
     {
+        let angle = vector_angle(&gravity);
         Self {
-            gravity: accel,
-            angle: Radians3D::init(V::zero().into()),
+            gravity,
+            angle,
             pos: Position3D::init(V::zero().into()),
             movement: Vector3D::init(V::zero().into()),
             prev_accel: Accel3D::init(V::zero().into()),
