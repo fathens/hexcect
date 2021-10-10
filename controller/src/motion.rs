@@ -8,7 +8,6 @@ use getset::Getters;
 use measure_units::Scalar;
 use nalgebra::RealField;
 use num_traits::{Float, FromPrimitive};
-use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Getters)]
 #[get = "pub"]
@@ -19,7 +18,7 @@ pub struct Posture<V: Float> {
     movement: Vector3D<Speed<V>>,
     prev_accel: Accel3D<V>,
     prev_gyro: Gyro3D<V>,
-    timestamp: Instant,
+    timestamp: Timestamp,
 }
 
 impl<V: Float> Posture<V> {
@@ -35,7 +34,7 @@ impl<V: Float> Posture<V> {
             movement: Vector3D::init(V::zero().into()),
             prev_accel: Accel3D::init(V::zero().into()),
             prev_gyro: Gyro3D::init(V::zero().into()),
-            timestamp: Instant::now(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -54,7 +53,7 @@ impl<V: Float> Posture<V> {
         V: From<Milliseconds<V>>,
         V: From<Nanoseconds<V>>,
     {
-        let dur: Seconds<V> = (Instant::now() - self.timestamp).into();
+        let (dur, next_timestamp) = self.timestamp.past_dur();
 
         let rotate_epsilon = self
             .prev_gyro
@@ -75,7 +74,7 @@ impl<V: Float> Posture<V> {
             movement: self.movement + &speed,
             prev_accel: next_accel,
             prev_gyro: gyro,
-            timestamp: Instant::now(),
+            timestamp: next_timestamp,
         }
     }
 }
