@@ -67,6 +67,7 @@ where
 mod tests {
     use super::*;
 
+    use approx::assert_ulps_eq;
     use rand::Rng;
 
     #[test]
@@ -80,20 +81,29 @@ mod tests {
 
     #[test]
     fn normalize() {
-        assert_eq!(Degrees::from(180.0).normalize().0, -180.0);
-        assert_eq!(Degrees::from(-180.0).normalize().0, -180.0);
-        assert_eq!(Degrees::from(540.0).normalize().0, -180.0);
+        let check = |a: f64, b: f64| {
+            assert_ulps_eq!(Degrees::from(a).normalize().0, b, max_ulps = 8);
+            assert_ulps_eq!(
+                Radians::from(a.to_radians()).normalize().0,
+                b.to_radians(),
+                max_ulps = 8
+            );
+        };
 
-        assert_eq!(Degrees::from(360.0).normalize().0, 0.0);
-        assert_eq!(Degrees::from(720.0).normalize().0, 0.0);
+        check(180.0, -180.0);
+        check(-180.0, -180.0);
+        check(540.0, -180.0);
 
-        assert_eq!(Degrees::from(179.0).normalize().0, 179.0);
-        assert_eq!(Degrees::from(-179.0).normalize().0, -179.0);
+        check(360.0, 0.0);
+        check(720.0, 0.0);
 
-        assert_eq!(Degrees::from(340.0).normalize().0, -20.0);
-        assert_eq!(Degrees::from(10.0).normalize().0, 10.0);
-        assert_eq!(Degrees::from(400.0).normalize().0, 40.0);
-        assert_eq!(Degrees::from(-400.0).normalize().0, -40.0);
+        check(179.0, 179.0);
+        check(-179.0, -179.0);
+
+        check(340.0, -20.0);
+        check(10.0, 10.0);
+        check(400.0, 40.0);
+        check(-400.0, -40.0);
     }
 
     #[test]
