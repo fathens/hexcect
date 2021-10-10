@@ -39,6 +39,10 @@ where
     }
 }
 
+/**
+ジャイロの微小角を現在の姿勢の回転に足し込む。
+See: http://watako-lab.com/2019/02/28/3axis_gyro/
+*/
 pub fn gyro_delta<V>(base: &Radians3D<V>, e: &Radians3D<V>) -> Radians3D<V>
 where
     V: Float,
@@ -106,7 +110,10 @@ where
     (yaw * pitch * roll * src.as_matrix()).into()
 }
 
-/// 垂直に対する回転を求める。
+/**
+垂直に対する回転を求める。
+See: http://watako-lab.com/2019/02/15/3axis_acc/
+*/
 pub fn vector_angle<F, A>(v: &Vector3D<A>) -> Radians3D<F>
 where
     A: Copy,
