@@ -194,10 +194,6 @@ impl<V: Copy> Position3D<V> {
     pub fn init(v: V) -> Self {
         Self::new(v, v, v)
     }
-
-    pub fn apply<U: Copy>(self, f: impl Fn(V) -> U) -> Position3D<U> {
-        Position3D::new(f(self.x), f(self.y), f(self.z))
-    }
 }
 
 impl<V: Copy, O: Copy> Add<&Vector3D<O>> for Position3D<V>
@@ -233,36 +229,6 @@ where
 
     fn sub(self, rhs: &Position3D<O>) -> Self::Output {
         Vector3D::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
-    }
-}
-
-impl<V: Copy, O: Copy> Mul<O> for Position3D<V>
-where
-    V: Mul<Scalar<O>>,
-    V::Output: Into<UnitsMul<O, V, Scalar<O>>>,
-    V: From<O>,
-    O: Into<Scalar<O>>,
-{
-    type Output = Position3D<V>;
-
-    fn mul(self, rhs: O) -> Self::Output {
-        let s: Scalar<O> = rhs.into();
-        self.apply(|v| (v * s).into().scalar())
-    }
-}
-
-impl<V: Copy, O: Copy> Div<O> for Position3D<V>
-where
-    V: Div<Scalar<O>>,
-    V::Output: Into<UnitsDiv<O, V, Scalar<O>>>,
-    V: From<O>,
-    O: Into<Scalar<O>>,
-{
-    type Output = Position3D<V>;
-
-    fn div(self, rhs: O) -> Self::Output {
-        let s: Scalar<O> = rhs.into();
-        self.apply(|v| (v / s).into().scalar())
     }
 }
 
@@ -415,33 +381,6 @@ mod tests {
         assert_eq!(c.x(), (9.0).meters());
         assert_eq!(c.y(), (18.0).meters());
         assert_eq!(c.z(), (27.0).meters());
-    }
-
-    #[test]
-    fn position_mul() {
-        let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let r: Position3D<Meters<f64>> = a * 1.5;
-        assert_eq!(r.x(), 1.5.meters());
-        assert_eq!(r.y(), 3.0.meters());
-        assert_eq!(r.z(), 4.5.meters());
-    }
-
-    #[test]
-    fn position_div() {
-        let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let r: Position3D<Meters<f64>> = a / 2.0;
-        assert_eq!(r.x(), 0.5.meters());
-        assert_eq!(r.y(), 1.0.meters());
-        assert_eq!(r.z(), 1.5.meters());
-    }
-
-    #[test]
-    fn position_convert() {
-        let a = Position3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
-        let b: Position3D<Millimeters<f64>> = a.apply(|v| v.into());
-        assert_eq!(b.x(), 1000_f64.millimeters());
-        assert_eq!(b.y(), 2000_f64.millimeters());
-        assert_eq!(b.z(), 3000_f64.millimeters());
     }
 
     #[test]
