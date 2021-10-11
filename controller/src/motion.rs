@@ -22,11 +22,16 @@ pub struct Posture<V: Float> {
 }
 
 impl<V: Float> Posture<V> {
-    pub fn init(gravity: Accel3D<V>) -> Self
+    pub fn init(accel: Accel3D<V>) -> Self
     where
+        V: FromPrimitive,
+        V: RealField,
         V: From<Accel<V>>,
+        V: From<Degrees<V>>,
+        V: From<Scalar<V>>,
     {
-        let angle = vector_angle(&gravity);
+        let angle = vector_angle(&accel);
+        let gravity = rotate(&accel, &angle);
         Self {
             gravity,
             angle,
@@ -60,9 +65,11 @@ impl<V: Float> Posture<V> {
             .prev_gyro
             .combine(&gyro, |p, n| integral_dur(dur, p, n));
         let angle_delta = gyro_delta(&self.angle, &rotate_epsilon.into());
-        let next_gravigy = rotate(&self.gravity, &angle_delta);
+        let next_angle = self.angle + &angle_delta;
 
-        let next_accel = accel - &self.gravity;
+        // TODO next_angle の補正
+
+        let next_accel = rotate(&accel, &next_angle) - &self.gravity;
         let speed_delta = self
             .prev_accel
             .combine(&next_accel, |p, n| integral_dur(dur, p, n));
@@ -72,15 +79,14 @@ impl<V: Float> Posture<V> {
             .movement
             .combine(&next_movement, |p, n| integral_dur(dur, p, n));
 
-        // TODO 仮の戻り値
         Self {
-            gravity: next_gravigy,
-            angle: self.angle + &angle_delta,
+            angle: next_angle,
             pos: self.pos + &move_delta,
             movement: next_movement,
             prev_accel: next_accel,
             prev_gyro: gyro,
             timestamp: next_timestamp,
+            ..self
         }
     }
 }
