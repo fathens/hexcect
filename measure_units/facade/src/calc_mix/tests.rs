@@ -44,6 +44,14 @@ fn commutative() {
 }
 
 #[test]
+fn sqrt() {
+    let a = Meter::from(2.0);
+    let b = a * a;
+    let c: Meter = b.sqrt();
+    assert_eq!(a.0, c.0);
+}
+
+#[test]
 fn associative() {
     let d = Meter::from(10.0);
     let t = Second::from(2.0);
@@ -141,6 +149,7 @@ fn infuse_extract_nmr() {
 fn infuse_extract_dnm() {
     type Extracted = UnitsDiv<f64, UnitsDiv<f64, Meter, Second>, Degree>;
     type Infused = UnitsDiv<f64, Meter, UnitsMul<f64, Second, Degree>>;
+    type Flipped = UnitsDiv<f64, UnitsDiv<f64, Meter, Degree>, Second>;
 
     let a = Meter::from(3.0);
     let b = Second::from(2.0);
@@ -149,10 +158,12 @@ fn infuse_extract_dnm() {
     let x: Extracted = a / b / c;
     let y: Infused = x.infuse_dnm();
     let z: Extracted = y.extract_dnm();
+    let k: Flipped = z.flip_dnm();
 
     assert_eq!(x.to_string(), "0.3m/s/d");
     assert_eq!(y.to_string(), "0.3m/sd");
     assert_eq!(z.to_string(), "0.3m/s/d");
+    assert_eq!(k.to_string(), "0.3m/d/s");
 }
 
 #[test]
