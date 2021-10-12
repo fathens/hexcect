@@ -102,11 +102,19 @@ impl<V: Copy> Vector3D<V> {
         Vector3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
     }
 
-    pub fn length(&self) -> V
+    pub fn length<F>(&self) -> V
     where
-        V: Float,
+        V: CalcMix<F>,
+        V: From<F>,
+        F: Float,
+        F: From<V>,
+        F: From<UnitsMul<F, V, V>>,
     {
-        (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
+        let pow = |v: V| v.calc_mul(v);
+        let x = pow(self.x);
+        let y = pow(self.y);
+        let z = pow(self.z);
+        (x.calc_add(y).calc_add(z)).sqrt()
     }
 
     pub fn as_matrix<T>(&self) -> Vector3<T>
@@ -447,5 +455,13 @@ mod tests {
         assert_eq!(v, vector![1_f64, 2_f64, 3_f64]);
         let r: Vector3D<Meters<f64>> = v.into();
         assert_eq!(a, r);
+    }
+
+    #[test]
+    fn vector3d_length() {
+        let a = Vector3D::new(1_f64.meters(), 2_f64.meters(), 3_f64.meters());
+        let length = (1_f64 + 4_f64 + 9_f64).sqrt().meters();
+
+        assert_eq!(a.length(), length);
     }
 }

@@ -1,5 +1,6 @@
 use crate::traits::FloatStatus;
 use measure_units_derive::*;
+use num_traits::Float;
 
 use std::lazy::Lazy;
 use std::marker::PhantomData;
@@ -79,6 +80,16 @@ impl<V, A, B> UnitsMul<V, A, B> {
     /// A * B = B * A
     pub fn commutative(self) -> UnitsMul<V, B, A> {
         self.0.into()
+    }
+}
+
+impl<V, A> UnitsMul<V, A, A> {
+    pub fn sqrt(self) -> A
+    where
+        V: Float,
+        A: From<V>,
+    {
+        self.0.sqrt().into()
     }
 }
 
