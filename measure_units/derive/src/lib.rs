@@ -1,9 +1,15 @@
+mod approx;
 mod calcmix;
 mod common;
 mod convertible;
 mod float_status;
 
 use proc_macro::TokenStream;
+
+#[proc_macro_derive(Approx)]
+pub fn derive_approx(items: TokenStream) -> TokenStream {
+    approx::derive(items.into()).into()
+}
 
 #[proc_macro_derive(FloatStatus)]
 pub fn derive_float_status(items: TokenStream) -> TokenStream {

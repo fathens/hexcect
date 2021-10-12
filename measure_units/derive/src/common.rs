@@ -41,7 +41,7 @@ pub fn newtype_with_phantoms(data: &Data) -> Option<(Type, Vec<Type>)> {
                         a => panic!("Unsuppoted args: {:?}", a),
                     }
                 } else {
-                    panic!("Suppor only `PhantomData`");
+                    panic!("Support only `PhantomData`");
                 }
             }
             t => panic!("Unsupported type: {:?}", t),

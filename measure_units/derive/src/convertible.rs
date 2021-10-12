@@ -369,4 +369,40 @@ mod tests {
             struct MyUnit(u8);
         });
     }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_simple00_convertible() {
+        derive(quote! {
+            struct MyAbc;
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_simple01_convertible() {
+        derive(quote! {
+            struct MyAbc(f32, f64);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_simple02_convertible() {
+        derive(quote! {
+            struct MyAbc {
+                a: f32,
+            }
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_struct_convertible() {
+        derive(quote! {
+            enum MyAbc {
+                A,
+            }
+        });
+    }
 }

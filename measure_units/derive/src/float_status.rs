@@ -161,4 +161,60 @@ mod tests {
         assert_eq!(t.partial_cmp(&h), Some(Ordering::Less));
         assert_eq!(h2.partial_cmp(&h), Some(Ordering::Equal));
     }
+
+    #[test]
+    #[should_panic(expected = "Support only `PhantomData`")]
+    fn not_phantom_simple_float_status() {
+        derive(quote! {
+            struct MyAbc(f32, f64);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Support only `PhantomData`")]
+    fn not_phantom_generics_float_status() {
+        derive(quote! {
+            struct MyAbc<A, B>(A, B);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_simple_float_status() {
+        derive(quote! {
+            struct MyAbc {
+                a: f32,
+                b: f64,
+            }
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_unit_float_status() {
+        derive(quote! {
+            struct MyAbc;
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_newtype_generics_float_status() {
+        derive(quote! {
+            struct MyAbc<A, B> {
+                a: A,
+                b: B,
+            }
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "MyAbc is not newtype struct.")]
+    fn not_struct_float_status() {
+        derive(quote! {
+            enum MyAbc {
+                A,
+            }
+        });
+    }
 }
