@@ -1,19 +1,25 @@
 use measure_units::*;
 use num_traits::{Float, FromPrimitive, NumCast};
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(unit_name = "s".to_string())]
 #[convertible(Milliseconds ^ 3)]
 #[convertible(Nanoseconds ^ 9)]
 pub struct Seconds<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(unit_name = "ms".to_string())]
 #[convertible(Seconds ^ -3)]
 #[convertible(Nanoseconds ^ 6)]
 pub struct Milliseconds<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(unit_name = "ns".to_string())]
 #[convertible(Seconds ^ -9)]
 #[convertible(Milliseconds ^ -6)]
@@ -200,7 +206,7 @@ impl MkDuration<f64> for f64 {
 mod tests {
     use super::*;
 
-    use approx::assert_ulps_eq;
+    use approx::{assert_relative_eq, assert_ulps_eq};
 
     fn as_uint<V: Into<f64>, T: From<u64>>(v: V) -> T {
         <u64 as NumCast>::from(v.into()).unwrap().into()
@@ -317,5 +323,26 @@ mod tests {
         let a: Seconds<f32> = (-1.2).into();
         let b: Option<std::time::Duration> = a.into();
         assert_eq!(b, None);
+    }
+
+    #[test]
+    fn nearly_equals() {
+        let a = 0.00_000_000_000_001_f64;
+        let b = a * 1.00_000_0001;
+
+        assert_ne!(a, b);
+        assert_ne!(a.seconds(), b.seconds());
+        assert_ne!(a.milliseconds(), b.milliseconds());
+        assert_ne!(a.nanoseconds(), b.nanoseconds());
+
+        assert_ulps_eq!(a, b);
+        assert_ulps_eq!(a.seconds(), b.seconds());
+        assert_ulps_eq!(a.milliseconds(), b.milliseconds());
+        assert_ulps_eq!(a.nanoseconds(), b.nanoseconds());
+
+        assert_relative_eq!(a, b);
+        assert_relative_eq!(a.seconds(), b.seconds());
+        assert_relative_eq!(a.milliseconds(), b.milliseconds());
+        assert_relative_eq!(a.nanoseconds(), b.nanoseconds());
     }
 }

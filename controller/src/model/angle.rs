@@ -22,7 +22,9 @@ pub trait Angle<F: Float>: From<F> + Into<F> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(into = [f32, f64], unit_name = "rad".to_string())]
 #[convertible(Degrees = v.to_degrees())]
 pub struct Radians<V: Float>(V);
@@ -48,7 +50,9 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(into = [f32, f64], unit_name = "°".to_string())]
 #[convertible(Radians = v.to_radians())]
 pub struct Degrees<V: Float>(V);
@@ -67,7 +71,7 @@ where
 mod tests {
     use super::*;
 
-    use approx::assert_ulps_eq;
+    use approx::{assert_relative_eq, assert_ulps_eq};
     use rand::Rng;
 
     #[test]
@@ -126,5 +130,29 @@ mod tests {
         let a: Radians<f64> = 1_f64.into();
         let b: Degrees<f64> = a.into();
         assert_eq!((a + b).to_string(), "2rad");
+    }
+
+    #[test]
+    fn nearly_equals() {
+        let a = 0.00_000_000_000_001_f64;
+        let b = a * 1.00_000_0001;
+
+        let a_degrees: Degrees<f64> = a.into();
+        let a_radians: Radians<f64> = a.into();
+
+        let b_degrees: Degrees<f64> = b.into();
+        let b_radians: Radians<f64> = b.into();
+
+        assert_ne!(a, b);
+        assert_ne!(a_degrees, b_degrees);
+        assert_ne!(a_radians, b_radians);
+
+        assert_ulps_eq!(a, b);
+        assert_ulps_eq!(a_degrees, b_degrees);
+        assert_ulps_eq!(a_radians, b_radians);
+
+        assert_relative_eq!(a, b);
+        assert_relative_eq!(a_degrees, b_degrees);
+        assert_relative_eq!(a_radians, b_radians);
     }
 }

@@ -1,11 +1,15 @@
 use measure_units::*;
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(unit_name = "m".to_string())]
 #[convertible(Millimeters ^ 3)]
 pub struct Meters<V>(V);
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus)]
+#[derive(
+    Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, CalcMix, Convertible, FloatStatus, Approx,
+)]
 #[calcmix(unit_name = "mm".to_string())]
 #[convertible(Meters ^ -3)]
 pub struct Millimeters<V>(V);
@@ -37,6 +41,8 @@ impl MkDistance<f64> for f64 {
 
 #[cfg(test)]
 mod tests {
+    use approx::{assert_relative_eq, assert_ulps_eq};
+
     use super::*;
 
     #[test]
@@ -57,5 +63,23 @@ mod tests {
 
         let a = 1_f32.millimeters() + 1_f32.meters();
         assert_eq!(a.to_string(), "1001mm");
+    }
+
+    #[test]
+    fn nearly_equals() {
+        let a = 0.00_000_000_000_001_f64;
+        let b = a * 1.00_000_0001;
+
+        assert_ne!(a, b);
+        assert_ne!(a.meters(), b.meters());
+        assert_ne!(a.millimeters(), b.millimeters());
+
+        assert_ulps_eq!(a, b);
+        assert_ulps_eq!(a.meters(), b.meters());
+        assert_ulps_eq!(a.millimeters(), b.millimeters());
+
+        assert_relative_eq!(a, b);
+        assert_relative_eq!(a.meters(), b.meters());
+        assert_relative_eq!(a.millimeters(), b.millimeters());
     }
 }
