@@ -132,6 +132,9 @@ where
     (yaw * pitch * roll * src.as_matrix()).into()
 }
 
+#[cfg(target_pointer_width = "64")]
+const MAX_RELATIVE_FOR_GRAVITY: f64 = 0.000_000_001;
+#[cfg(target_pointer_width = "32")]
 const MAX_RELATIVE_FOR_GRAVITY: f32 = 0.000_000_001;
 
 pub fn cmp_gravity<V>(g: &Accel3D<V>, accel: &Accel3D<V>) -> bool
