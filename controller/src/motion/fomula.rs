@@ -1,5 +1,6 @@
+use approx::relative_eq;
 use nalgebra::{matrix, RealField};
-use num_traits::{Float, FromPrimitive};
+use num_traits::{Float, FromPrimitive, NumCast};
 use std::ops::Add;
 
 use crate::model::*;
@@ -129,6 +130,21 @@ where
     };
 
     (yaw * pitch * roll * src.as_matrix()).into()
+}
+
+const MAX_RELATIVE_FOR_GRAVITY: f32 = 0.000_000_001;
+
+pub fn cmp_gravity<V>(g: &Accel3D<V>, accel: &Accel3D<V>) -> bool
+where
+    V: Float,
+    V: RealField,
+    V: From<Accel<V>>,
+{
+    let a = g.length();
+    let b = accel.length();
+    let mr = <V as NumCast>::from(MAX_RELATIVE_FOR_GRAVITY).unwrap();
+
+    relative_eq!(a, b, max_relative = mr)
 }
 
 fn product_dur<V, A, D>(moving: UnitsDiv<V, A, D>, dur: D) -> A
@@ -324,6 +340,21 @@ mod tests {
             check(m_yaw * (m_pitch * (m_roll * v)));
             check(m_yaw * (m_pitch * m_roll * v));
             check(m_yaw * (m_pitch * m_roll) * v);
+        }
+    }
+
+    #[test]
+    fn cmp_gravity_random() {
+        let mut rnd = rand::thread_rng();
+        let e = Scalar::from((MAX_RELATIVE_FOR_GRAVITY as f64)/ 10.0 + 1.0);
+        for _ in 0..100 {
+            let x: f64 = rnd.gen();
+            let y: f64 = rnd.gen();
+            let z: f64 = rnd.gen();
+
+            let a = Vector3D::<Accel<f64>>::new(x.into(), y.into(), z.into());
+            let b = a.clone().apply(|v| (v * e).scalar());
+            assert!(cmp_gravity(&a, &b));
         }
     }
 }

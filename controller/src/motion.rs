@@ -67,9 +67,12 @@ impl<V: Float> Posture<V> {
         let angle_delta = gyro_delta(&self.angle, &rotate_epsilon.into());
         let next_angle = self.angle + &angle_delta;
 
-        // TODO next_angle の補正
-
         let next_accel = rotate(&accel, &next_angle) - &self.gravity;
+
+        if cmp_gravity(&self.gravity, &next_accel) {
+            // TODO next_angle の補正
+        }
+
         let speed_delta = self
             .prev_accel
             .combine(&next_accel, |p, n| integral_dur(dur, p, n));

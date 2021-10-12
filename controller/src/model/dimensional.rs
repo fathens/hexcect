@@ -108,13 +108,11 @@ impl<V: Copy> Vector3D<V> {
         V: From<F>,
         F: Float,
         F: From<V>,
-        F: From<UnitsMul<F, V, V>>,
     {
-        let pow = |v: V| v.calc_mul(v);
-        let x = pow(self.x);
-        let y = pow(self.y);
-        let z = pow(self.z);
-        (x.calc_add(y).calc_add(z)).sqrt()
+        let x: F = self.x.into();
+        let y: F = self.y.into();
+        let z: F = self.z.into();
+        (x.powi(2) + y.powi(2) + z.powi(2)).sqrt().into()
     }
 
     pub fn as_matrix<T>(&self) -> Vector3<T>
