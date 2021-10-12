@@ -102,6 +102,13 @@ impl<V: Copy> Vector3D<V> {
         Vector3D::new(f(self.x, o.x), f(self.y, o.y), f(self.z, o.z))
     }
 
+    pub fn length(&self) -> V
+    where
+        V: Float,
+    {
+        (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
+    }
+
     pub fn as_matrix<T>(&self) -> Vector3<T>
     where
         T: From<V>,
