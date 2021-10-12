@@ -8,14 +8,8 @@ use derive_more::{From, Into};
 #[derive(Debug, Clone, Copy, From, Into, PartialEq, Approx)]
 struct MyUnit(f64);
 
-#[derive(Debug, Clone, Copy, Approx)]
+#[derive(Debug, Clone, Copy, PartialEq, Approx)]
 struct MyGenerics<V, A>(V, PhantomData<A>);
-
-impl<V: PartialEq, A> PartialEq for MyGenerics<V, A> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
 
 impl From<f64> for MyGenerics<f64, i8> {
     fn from(s: f64) -> Self {

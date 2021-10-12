@@ -7,7 +7,7 @@ use syn::{DeriveInput, Generics, Ident, Type};
 pub fn derive(items: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse2(items).unwrap();
     let name = ast.ident;
-    let (inner_type, _) = newtype_with_phantoms(&ast.data)
+    let (inner_type, phantoms) = newtype_with_phantoms(&ast.data)
         .unwrap_or_else(|| panic!("{} is not newtype struct.", name));
 
     let gp = if ast.generics.params.is_empty() {
@@ -19,6 +19,7 @@ pub fn derive(items: TokenStream) -> TokenStream {
     let params = Params {
         name,
         inner_type,
+        phantoms,
         generics: ast.generics,
         gparams: gp,
     };
@@ -33,18 +34,19 @@ pub fn derive(items: TokenStream) -> TokenStream {
 struct Params {
     name: Ident,
     inner_type: Type,
+    phantoms: Vec<Type>,
     generics: Generics,
     gparams: Option<TokenStream>,
 }
 
 impl Params {
-    pub fn all_ref(&self) -> (&Ident, &Type, &Generics) {
-        (&self.name, &self.inner_type, &self.generics)
+    pub fn all_ref(&self) -> (&Ident, &Type, &Vec<Type>, &Generics) {
+        (&self.name, &self.inner_type, &self.phantoms, &self.generics)
     }
 }
 
 fn impl_absdiff(params: &Params) -> TokenStream {
-    let (name, inner_type, generics) = params.all_ref();
+    let (name, inner_type, phantoms, generics) = params.all_ref();
 
     let body = quote! {
         type Epsilon = <#inner_type as approx::AbsDiffEq>::Epsilon;
@@ -59,10 +61,16 @@ fn impl_absdiff(params: &Params) -> TokenStream {
     };
 
     if let Some(gparams) = &params.gparams {
+        let partial_eqs = TokenStream::from_iter(phantoms.iter().map(|p| {
+            quote! {
+                #p: core::cmp::PartialEq,
+            }
+        }));
         quote! {
             impl #generics approx::AbsDiffEq for #name #gparams
             where
                 #inner_type: approx::AbsDiffEq,
+                #partial_eqs
             {
                 #body
             }
@@ -77,7 +85,7 @@ fn impl_absdiff(params: &Params) -> TokenStream {
 }
 
 fn impl_relative(params: &Params) -> TokenStream {
-    let (name, inner_type, generics) = params.all_ref();
+    let (name, inner_type, phantoms, generics) = params.all_ref();
 
     let body = quote! {
         fn default_max_relative() -> <#inner_type as approx::AbsDiffEq>::Epsilon {
@@ -95,10 +103,16 @@ fn impl_relative(params: &Params) -> TokenStream {
     };
 
     if let Some(gparams) = &params.gparams {
+        let partial_eqs = TokenStream::from_iter(phantoms.iter().map(|p| {
+            quote! {
+                #p: core::cmp::PartialEq,
+            }
+        }));
         quote! {
             impl #generics approx::RelativeEq for #name #gparams
             where
                 #inner_type: approx::RelativeEq,
+                #partial_eqs
             {
                 #body
             }
@@ -113,7 +127,7 @@ fn impl_relative(params: &Params) -> TokenStream {
 }
 
 fn impl_ulps(params: &Params) -> TokenStream {
-    let (name, inner_type, generics) = params.all_ref();
+    let (name, inner_type, phantoms, generics) = params.all_ref();
 
     let body = quote! {
         fn default_max_ulps() -> u32 {
@@ -131,10 +145,16 @@ fn impl_ulps(params: &Params) -> TokenStream {
     };
 
     if let Some(gparams) = &params.gparams {
+        let partial_eqs = TokenStream::from_iter(phantoms.iter().map(|p| {
+            quote! {
+                #p: core::cmp::PartialEq,
+            }
+        }));
         quote! {
             impl #generics approx::UlpsEq for #name #gparams
             where
                 #inner_type: approx::UlpsEq,
+                #partial_eqs
             {
                 #body
             }
@@ -208,6 +228,7 @@ mod tests {
             impl<V, A> approx::AbsDiffEq for MyGenerics<V, A>
             where
                 V: approx::AbsDiffEq,
+                A: core::cmp::PartialEq,
             {
                 type Epsilon = <V as approx::AbsDiffEq>::Epsilon;
                 fn default_epsilon() -> Self::Epsilon {
@@ -220,6 +241,7 @@ mod tests {
             impl<V, A> approx::RelativeEq for MyGenerics<V, A>
             where
                 V: approx::RelativeEq,
+                A: core::cmp::PartialEq,
             {
                 fn default_max_relative() -> <V as approx::AbsDiffEq>::Epsilon {
                     V::default_max_relative()
@@ -236,6 +258,7 @@ mod tests {
             impl<V, A> approx::UlpsEq for MyGenerics<V, A>
             where
                 V: approx::UlpsEq,
+                A: core::cmp::PartialEq,
             {
                 fn default_max_ulps() -> u32 {
                     V::default_max_ulps()
